@@ -1,0 +1,30 @@
+{
+  "name": "back-cfb",
+  "version": "1.0.0",
+  "description": "Back-end for messaging app",
+  "main": "src/app.js",
+  "scripts": {
+    "serve": "node src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Meknassih/back-cfb.git"
+  },
+  "keywords": [
+    "back",
+    "end",
+    "node",
+    "chat",
+    "messenger"
+  ],
+  "author": "Hamza El Meknassi",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/Meknassih/back-cfb/issues"
+  },
+  "homepage": "https://github.com/Meknassih/back-cfb#readme",
+  "dependencies": {
+    "express": "^4.16.4"
+  }
+}
