@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/Meknassih/back-cfb#readme",
   "dependencies": {
+    "body-parser": "^1.18.3",
     "express": "^4.16.4",
     "mustache": "^3.0.0",
     "passport-local": "^1.0.0"

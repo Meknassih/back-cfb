@@ -5,6 +5,10 @@ const port = 3000;
 const _templateDir = 'src/statics';
 const fs = require('fs');
 const path = require('path');
+const bodyParser = require('body-parser');
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', function (req, res) {
     
@@ -41,14 +45,14 @@ app.get('/word', function (req, res) {
     res.send('Word page')
 });
 
-app.get('/login', function (req, res) {
+app.post('/login', function (req, res) {
     let filePath = path.join(_templateDir, '/identification.html');
 
-    fs.readFile(filePath, { encoding: 'utf-8' }, function (err, data) {
+    fs.readFile(filePath, { encoding: 'utf-8' }, function (err, html) {
         if (!err) {
-            console.log('request ', );
+            console.log('request body', JSON.stringify(req.body));
             res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.write(data);
+            res.write(mustache.render(html, {'connected':true}));
             res.end();
         } else {
             console.log(err);
