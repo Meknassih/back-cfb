@@ -9,7 +9,18 @@ const path = require('path');
 app.get('/', (req, res) => res.send('Hello World!'));
 
 app.get('/about', function (req, res) {
-    res.send('About page !')
+    let filePath = path.join(_templateDir, '/propos.html');
+
+    fs.readFile(filePath, { encoding: 'utf-8' }, function (err, data) {
+        if (!err) {
+            console.log('request ', );
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.write(data);
+            res.end();
+        } else {
+            console.log(err);
+        }
+    });
 });
 
 app.get('/word', function (req, res) {
