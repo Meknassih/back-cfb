@@ -62,3 +62,9 @@ typings/
 
 # Fichiers éditeur IntelliJ
 .idea/
+
+# MongoDB
+data/*
+!data/placeholder
+log/*
+!log/placeholder

@@ -4,7 +4,7 @@
   "description": "Back-end for messaging app",
   "main": "src/app.js",
   "scripts": {
-    "serve": "node src/app.js",
+    "serve": "node src/app.js | mongod --dbpath=data > log/logs.txt",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -27,6 +27,8 @@
   "dependencies": {
     "body-parser": "^1.18.3",
     "express": "^4.16.4",
+    "mongodb": "^3.1.8",
+    "mongoose": "^5.3.4",
     "mustache": "^3.0.0",
     "passport-local": "^1.0.0"
   }

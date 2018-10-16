@@ -29,11 +29,11 @@ app.get('/', function (req, res) {
 app.get('/about', function (req, res) {
     let filePath = path.join(_templateDir, '/propos.html');
 
-    fs.readFile(filePath, { encoding: 'utf-8' }, function (err, data) {
+    fs.readFile(filePath, { encoding: 'utf-8' }, function (err, html) {
         if (!err) {
-            console.log('request ');
+            console.info('GET /about : ', JSON.stringify(req.body));
             res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.write(data);
+            res.write(html);
             res.end();
         } else {
             console.log(err);
