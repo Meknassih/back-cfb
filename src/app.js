@@ -11,12 +11,12 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', function (req, res) {
-    
+
     let filePath = path.join(_templateDir, '/accueil.html');
 
     fs.readFile(filePath, { encoding: 'utf-8' }, function (err, data) {
         if (!err) {
-            console.log('request ', );
+            console.log('request ');
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.write(data);
             res.end();
@@ -31,7 +31,7 @@ app.get('/about', function (req, res) {
 
     fs.readFile(filePath, { encoding: 'utf-8' }, function (err, data) {
         if (!err) {
-            console.log('request ', );
+            console.log('request ');
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.write(data);
             res.end();
@@ -45,6 +45,21 @@ app.get('/word', function (req, res) {
     res.send('Word page')
 });
 
+app.get('/login', function (req, res) {
+    console.info('GET /login : ', JSON.stringify(req.body));
+    let filePath = path.join(_templateDir, '/identification.html');
+
+    fs.readFile(filePath, { encoding: 'utf-8' }, (err, html) => {
+        if (!err) {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.write(mustache.render(html, { connected: false }));
+            res.end();
+        } else {
+            console.log(err);
+        }
+    });
+});
+
 app.post('/login', function (req, res) {
     let filePath = path.join(_templateDir, '/identification.html');
 
@@ -52,7 +67,7 @@ app.post('/login', function (req, res) {
         if (!err) {
             console.log('request body', JSON.stringify(req.body));
             res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.write(mustache.render(html, {'connected':true}));
+            res.write(mustache.render(html, { 'connected': true }));
             res.end();
         } else {
             console.log(err);
@@ -65,7 +80,7 @@ app.get('/logout', function (req, res) {
 
     fs.readFile(filePath, { encoding: 'utf-8' }, function (err, data) {
         if (!err) {
-            console.log('request ', );
+            console.log('request ');
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.write(data);
             res.end();
@@ -81,4 +96,4 @@ app.get('*', function (req, res) {
 });
 
 
-app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+app.listen(port, () => console.info(`Back-end server listenning on ${port}`));
