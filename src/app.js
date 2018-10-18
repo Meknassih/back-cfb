@@ -102,6 +102,32 @@ app.post('/login', function (req, res) {
     });
 });
 
+app.post('/apirest/registration', function (req, res) {
+    if (req.body.username &&
+        req.body.password &&
+        req.body.email) {
+
+        var userData = {
+            email: req.body.email,
+            username: req.body.username,
+            password: req.body.password,
+        };
+
+        mongoose.model('User').create(userData, function (err, user) {
+            if (err) {
+                res.json({"success": false,"details": err});
+            } else {
+                res.json({"success": true, "details": 'Inscription réussie.'});
+            }
+        });
+    } else {
+        res.json({"success": false, "details": "Une des valeurs est manquante."});
+        res.end();
+    }
+});
+
+
+
 app.get('/logout', function (req, res) {
     let filePath = path.join(_templateDir, '/accueil.html');
 
