@@ -6,9 +6,18 @@ const _templateDir = 'src/statics';
 const fs = require('fs');
 const path = require('path');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const passport = require('passport-jwt');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(require('morgan')('dev'));
+
+//Configure Mongoose
+mongoose.connect('mongodb://localhost/data');
+mongoose.set('debug', true);
+
+require('./models/User');
 
 app.get('/', function (req, res) {
 
@@ -57,6 +66,24 @@ app.get('/login', function (req, res) {
         } else {
             console.log(err);
         }
+    });
+});
+
+app.post('/apirest/login', function (req, res) {
+    mongoose.model('User').login(req.body.username, req.body.password, function (err, user) {
+        if (err) {
+            res.writeHead(503, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({error: 'Internal error'}));
+        } else {
+            if (user.length > 0) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify(user));
+            } else {
+                res.writeHead(300, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({error: 'Bad credentials'}));
+            } 
+        }
+        res.end();
     });
 });
 

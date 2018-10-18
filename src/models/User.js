@@ -40,4 +40,8 @@ UserSchema.methods.toAuthJSON = function() {
     };
 };
 
+UserSchema.statics.login = function(username, plainPassword, cb) {
+    return this.find({username: username, password: plainPassword}, cb);
+}
+
 mongoose.model('User', UserSchema);
