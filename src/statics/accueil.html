@@ -1,0 +1,13 @@
+<p>Bienvenue sur notre messagerie instantanée !<br/>Ici vous pourrez créer des conversations, envoyer et recevoir des messages, gérer votre profil utilisateur, et plein d'autres fonctionnalités...</p>
+{{#connected}}
+    <p>Bienvenue {{username}} !</p>
+{{/connected}}
+{{^connected}}
+    <form action="post">
+        <label for="username">Nom d'utilisateur :</label>
+        <input type="text" name="username" id="username"><br/><br/>
+        <label for="password">Mot de passe :</label>
+        <input type="password" name="password" id="password"><br/><br/>
+        <input type="submit" value="Se connecter">
+    </form>
+{{/connected}}

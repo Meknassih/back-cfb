@@ -1,0 +1,12 @@
+{{^connected}}
+    <form action="post">
+        <label for="username">Nom d'utilisateur :</label>
+        <input type="text" name="username" id="username"><br/><br/>
+        <label for="password">Mot de passe :</label>
+        <input type="password" name="password" id="password"><br/><br/>
+        <input type="submit" value="Se connecter">
+    </form>
+{{/connected}}
+{{#error}}
+    <p>{{{error_message}}}</p>
+{{/error}}

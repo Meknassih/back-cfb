@@ -16,13 +16,17 @@ This repo is about a back-end standardized for an instant messaging front-end fo
   
      Download and execute the installer from the official website [Nodejs.org](https://nodejs.org/en/)
      
+2. Install MongoDB
+
+   Follow the steps depending on your OS at the [MongoDB official docs](https://docs.mongodb.com/manual/administration/install-community/).
+
 3. Clone this repository
 
    ```
    git clone git@github.com:Meknassih/back-cfb.git
    ```
 
-2. Install NPM dependencies
+4. Install NPM dependencies
 
    ```
    cd back-fcb

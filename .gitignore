@@ -59,3 +59,12 @@ typings/
 
 # next.js build output
 .next
+
+# Fichiers éditeur IntelliJ
+.idea/
+
+# MongoDB
+data/*
+!data/placeholder
+log/*
+!log/placeholder
