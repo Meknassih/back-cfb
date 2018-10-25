@@ -78,25 +78,46 @@ app.post('/apirest/login', function (req, res) {
                 code: 'E0002',
                 description: 'Session expirée ou inexistante'
             }));
+            console.log('ending')
+            res.end();
         } else {
-            if (user.length > 0) {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
-                    type: 'authentication',
-                    code: 'T0001',
-                    description: 'Vous êtes maintenant connecté',
-                    payload: user
-                }));
+            //console.log(JSON.stringify(user));
+            if (user) {
+                console.log('found ', user.username)
+                mongoose.model('User').setConnected(user, function (err, user) {
+                    if (err) {
+                        console.log('error on set connected ')
+                        res.writeHead(503, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'error',
+                            code: 'E0002',
+                            description: 'Session expirée ou inexistante'
+                        }));
+                    } else {
+                        console.log('set connected ')
+                        //res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'authentication',
+                            code: 'T0001',
+                            description: 'Vous êtes maintenant connecté',
+                            payload: user
+                        }));
+                    }
+                    console.log('ending')
+                    res.end();
+                });
             } else {
+                console.log('no user found ')
                 res.writeHead(300, { 'Content-Type': 'application/json' });
                 res.write(JSON.stringify({
                     type: 'error',
                     code: 'E0001',
                     description: 'Mauvais login ou mot de passe'
                 }));
-            } 
+                console.log('ending')
+                res.end();
+            }
         }
-        res.end();
     });
 });
 
@@ -115,7 +136,7 @@ app.post('/login', function (req, res) {
     });
 });
 
-app.post('/apirest/registration', function (req, res) {
+app.post('/apirest/register', function (req, res) {
     if (req.body.username &&
         req.body.password &&
         req.body.email) {
@@ -128,13 +149,13 @@ app.post('/apirest/registration', function (req, res) {
 
         mongoose.model('User').create(userData, function (err, user) {
             if (err) {
-                res.json({"success": false,"details": err});
+                res.json({ "success": false, "details": err });
             } else {
-                res.json({"success": true, "details": 'Inscription réussie.'});
+                res.json({ "success": true, "details": 'Inscription réussie.' });
             }
         });
     } else {
-        res.json({"success": false, "details": "Une des valeurs est manquante."});
+        res.json({ "success": false, "details": "Une des valeurs est manquante." });
         res.end();
     }
 });

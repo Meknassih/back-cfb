@@ -41,7 +41,21 @@ UserSchema.methods.toAuthJSON = function() {
 };
 
 UserSchema.statics.login = function(username, plainPassword, cb) {
-    return this.find({username: username, password: plainPassword}, cb);
+    return this.findOne({username: username, password: plainPassword}, cb);
+}
+
+UserSchema.statics.setConnected = function(user, cb) {
+    return this.findOne({username: user.username}, function(err, user) {
+        if (err)
+            return cb(err);
+        user.isOnline = true;
+        user.lastSeen = new Date();
+        user.save(function (err, savedUser) {
+            if (err)
+                return cb(err);
+            cb(null, savedUser);
+        });
+    });
 }
 
 mongoose.model('User', UserSchema);
