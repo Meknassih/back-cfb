@@ -9,6 +9,8 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const passport = require('passport-jwt');
 const nodemailer = require('nodemailer');
+const hash = require('object-hash');
+const publicIp = require('public-ip');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -166,6 +168,7 @@ app.post('/apirest/register', function (req, res) {
 });
 
 app.post('/apirest/confirmation-mail', function (req, res) {
+    console.log('dirname ', __dirname);
     if (req.body.login && req.body.email) {
         mongoose.model('User').findOne({ login: req.body.login, email: req.body.email }, function (err, user) {
             if (err) {
@@ -187,40 +190,42 @@ app.post('/apirest/confirmation-mail', function (req, res) {
                     }
                 });
 
-                // setup email data with unicode symbols
-                let mailOptions = {
-                    from: '"5G mailer (noreply)" <cfb.back3@gmail.com>', // sender address
-                    to: 'elmeknassi.h@gmail.com', // list of receivers
-                    subject: 'Finalisez la création de votre compte ✔', // Subject line
-                    html: `<p>Bonjour,<br><br>
-                                pour terminer votre inscription veuillez cliquer sur le lien suivant : <b>LIEN</b>.<br><br>
+                publicIp.v4().then(ip => {
+                    let mailOptions = {
+                        from: '"5G mailer (noreply)" <cfb.back3@gmail.com>', // sender address
+                        to: 'elmeknassi.h@gmail.com', // list of receivers
+                        subject: 'Finalisez la création de votre compte ✔', // Subject line
+                        html: `<p>Bonjour,<br><br>
+                                pour terminer votre inscription veuillez cliquer sur le lien suivant : <b><a href="http://${ip}/email/confirm/${hash({login:user.login, email:user.email})} ">confirmer mon adresse</a></b>.<br><br>
                                 A très bientôt sur 5G.<br><br>
                                 Merci de ne pas répondre à cet email.</p>
                                 `
-                };
+                    };
 
-                transporter.sendMail(mailOptions, (error, info) => {
-                    if (error) {
-                        res.writeHead(300, { 'Content-Type': 'application/json' });
-                        res.write(JSON.stringify({
-                            type: 'error',
-                            code: 'E1004',
-                            description: err
-                        }));
-                        res.end();
-                        return console.log(error);
-                    } else {
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.write(JSON.stringify({
-                            type: 'email',
-                            code: 'T1002',
-                            description: 'Email de confirmation envoyé.',
-                            payload: info
-                        }));
-                        res.end();
-                        console.log('Message sent: %s', info.messageId);
-                    }
+                    transporter.sendMail(mailOptions, (error, info) => {
+                        if (error) {
+                            res.writeHead(300, { 'Content-Type': 'application/json' });
+                            res.write(JSON.stringify({
+                                type: 'error',
+                                code: 'E1004',
+                                description: err
+                            }));
+                            res.end();
+                            return console.log(error);
+                        } else {
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.write(JSON.stringify({
+                                type: 'email',
+                                code: 'T1002',
+                                description: 'Email de confirmation envoyé.',
+                                payload: info
+                            }));
+                            res.end();
+                            console.log('Message sent: %s', info.messageId);
+                        }
+                    });
                 });
+
             } else {
                 res.writeHead(300, { 'Content-Type': 'application/json' });
                 res.write(JSON.stringify({
