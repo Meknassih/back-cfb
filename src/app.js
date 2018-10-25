@@ -175,18 +175,24 @@ app.post('/apirest/register', function (req, res) {
 });
 
 app.get('/logout', function (req, res) {
-    let filePath = path.join(_templateDir, '/accueil.html');
+    res.writeHead(503, { 'Content-Type': 'application/json' });
 
-    fs.readFile(filePath, { encoding: 'utf-8' }, function (err, data) {
-        if (!err) {
-            console.log('request ');
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.write(data);
-            res.end();
-        } else {
-            console.log(err);
-        }
-    });
+    if(req.session.user){
+        req.session.destroy();
+        res.write(JSON.stringify({
+            type: 'authentication',
+            code: 'T0003',
+            description: 'Vous avez bien été déconnecté'
+        }));
+    } else {
+        res.write(JSON.stringify({
+            type: 'authentication',
+            code: 'E0002',
+            description: 'Session expirée ou inexistante'
+        }));
+    }
+    res.end();
+
 
 });
 
