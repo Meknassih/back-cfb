@@ -12,6 +12,7 @@ const passport = require('passport-jwt');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(require('morgan')('dev'));
+app.use(express.static(__dirname + '/statics'));
 
 //Configure Mongoose
 mongoose.connect('mongodb://localhost/data');
@@ -21,11 +22,10 @@ require('./models/User');
 
 app.get('/', function (req, res) {
 
-    let filePath = path.join(_templateDir, '/accueil.html');
+    let filePath = path.join(_templateDir, 'index.html');
 
     fs.readFile(filePath, { encoding: 'utf-8' }, function (err, data) {
         if (!err) {
-            console.log('request ');
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.write(data);
             res.end();
@@ -56,12 +56,12 @@ app.get('/word', function (req, res) {
 
 app.get('/login', function (req, res) {
     console.info('GET /login : ', JSON.stringify(req.body));
-    let filePath = path.join(_templateDir, '/identification.html');
+    let filePath = path.join(_templateDir, 'login.html');
 
     fs.readFile(filePath, { encoding: 'utf-8' }, (err, html) => {
         if (!err) {
             res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.write(mustache.render(html, { connected: false }));
+            res.write(html);
             res.end();
         } else {
             console.log(err);
@@ -70,7 +70,7 @@ app.get('/login', function (req, res) {
 });
 
 app.post('/apirest/login', function (req, res) {
-    mongoose.model('User').login(req.body.username, req.body.password, function (err, user) {
+    mongoose.model('User').login(req.body.login, req.body.password, function (err, user) {
         if (err) {
             res.writeHead(503, { 'Content-Type': 'application/json' });
             res.write(JSON.stringify({
@@ -131,10 +131,10 @@ app.post('/login', function (req, res) {
 });
 
 app.post('/apirest/register', function (req, res) {
-    if (req.body.username &&
+    if (req.body.login &&
         req.body.password &&
         req.body.email) {
-        mongoose.model('User').register(req.body.username, req.body.password, req.body.email, function(err, registeredUser) {
+        mongoose.model('User').register(req.body.login, req.body.password, req.body.email, function(err, registeredUser) {
             if (err) {
                 res.writeHead(300, { 'Content-Type': 'application/json' });
                 res.write(JSON.stringify({
@@ -181,10 +181,5 @@ app.get('/logout', function (req, res) {
     });
 
 });
-
-app.get('*', function (req, res) {
-    res.redirect('/');
-});
-
 
 app.listen(port, () => console.info(`Back-end server listenning on ${port}`));

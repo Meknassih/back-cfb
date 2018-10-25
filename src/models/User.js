@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { Schema } = mongoose;
 
 const UserSchema = new Schema({
-    username: String,
+    login: String,
     password: String,
     email: String,
     salt: String,
@@ -22,7 +22,7 @@ UserSchema.methods.generateJWT = function () {
     expirationDate.setDate(today.getDate() + 60);
 
     return jwt.sign({
-        username: this.username,
+        login: this.username,
         id: this._id,
         exp: parseInt(expirationDate.getTime() / 1000, 10),
     }, 'secret');
@@ -32,7 +32,7 @@ UserSchema.methods.generateJWT = function () {
 UserSchema.methods.toAuthJSON = function () {
     return {
         _id: this._id,
-        username: this.username,
+        login: this.username,
         email: this.email,
         avatarUrl: this.avatarUrl,
         lastSeen: this.lastSeen,
@@ -41,11 +41,11 @@ UserSchema.methods.toAuthJSON = function () {
 };
 
 UserSchema.statics.login = function (username, plainPassword, cb) {
-    return this.findOne({ username: username, password: plainPassword }, cb);
+    return this.findOne({ login: username, password: plainPassword }, cb);
 }
 
 UserSchema.statics.setConnected = function (user, cb) {
-    return this.findOne({ username: user.username }, function (err, user) {
+    return this.findOne({ login: user.login }, function (err, user) {
         if (err)
             return cb(err);
         user.isOnline = true;
@@ -60,11 +60,11 @@ UserSchema.statics.setConnected = function (user, cb) {
 
 UserSchema.statics.register = function (username, plainPassword, email, cb) {
     if (username && plainPassword && email) {
-        return this.findOne({ username: username }, (err, existingUser) => {
+        return this.findOne({ login: username }, (err, existingUser) => {
             if (err)
                 return cb(err);
             if (existingUser)
-                return cb('User with username ' + existingUser.username + ' exists.');
+                return cb('User with username ' + existingUser.login + ' exists.');
             else {
                 this.findOne({ email: email }, (err, existingUser) => {
                     if (err)
@@ -72,7 +72,7 @@ UserSchema.statics.register = function (username, plainPassword, email, cb) {
                     if (existingUser)
                         return cb('User with email ' + existingUser.email + ' exists.');
                     else {
-                        mongoose.model('User').create({username: username, password: plainPassword, email: email}, function (err, user) {
+                        mongoose.model('User').create({login: username, password: plainPassword, email: email}, function (err, user) {
                             if (err) {
                                 cb(err);
                             } else {

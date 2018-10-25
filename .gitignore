@@ -68,3 +68,6 @@ data/*
 !data/placeholder
 log/*
 !log/placeholder
+
+# Front files
+src/statics/*
