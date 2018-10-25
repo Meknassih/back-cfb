@@ -73,14 +73,27 @@ app.post('/apirest/login', function (req, res) {
     mongoose.model('User').login(req.body.username, req.body.password, function (err, user) {
         if (err) {
             res.writeHead(503, { 'Content-Type': 'application/json' });
-            res.write(JSON.stringify({error: 'Internal error'}));
+            res.write(JSON.stringify({
+                type: 'error',
+                code: 'E0002',
+                description: 'Session expirée ou inexistante'
+            }));
         } else {
             if (user.length > 0) {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify(user));
+                res.write(JSON.stringify({
+                    type: 'authentication',
+                    code: 'T0001',
+                    description: 'Vous êtes maintenant connecté',
+                    payload: user
+                }));
             } else {
                 res.writeHead(300, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({error: 'Bad credentials'}));
+                res.write(JSON.stringify({
+                    type: 'error',
+                    code: 'E0001',
+                    description: 'Mauvais login ou mot de passe'
+                }));
             } 
         }
         res.end();
