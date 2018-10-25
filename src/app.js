@@ -7,11 +7,12 @@ const fs = require('fs');
 const path = require('path');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const passport = require('passport-jwt');
+const session = require('express-session');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(require('morgan')('dev'));
+app.use(session({secret:"rezjrezkjrezklrj4376786", resave: false, saveUninitialized:true}));
 app.use(express.static(__dirname + '/statics'));
 
 //Configure Mongoose
@@ -92,6 +93,7 @@ app.post('/apirest/login', function (req, res) {
                             description: 'Session expirée ou inexistante'
                         }));
                     } else {
+                        req.session.user = user;
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.write(JSON.stringify({
                             type: 'authentication',
@@ -114,6 +116,14 @@ app.post('/apirest/login', function (req, res) {
         }
     });
 });
+
+app.get('/dashboard', function (req, res) {
+    if(!req.session.user){
+        return res.status(401).send();
+    }
+    return res.status(200).send("WELCOME !!");
+});
+
 
 app.post('/login', function (req, res) {
     let filePath = path.join(_templateDir, '/identification.html');
@@ -163,8 +173,6 @@ app.post('/apirest/register', function (req, res) {
         res.end();
     }
 });
-
-
 
 app.get('/logout', function (req, res) {
     let filePath = path.join(_templateDir, '/accueil.html');
