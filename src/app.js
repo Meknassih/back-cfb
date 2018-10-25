@@ -166,82 +166,74 @@ app.post('/apirest/register', function (req, res) {
 });
 
 app.post('/apirest/confirmation-mail', function (req, res) {
-    if (req.body.login &&
-        req.body.email) {
-        let transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true, // true for 465, false for other ports
-            auth: {
-                user: 'cfb.back3@gmail.com', // generated ethereal user
-                pass: 'Ynov2018' // generated ethereal password
-            }
-        });
-
-        // setup email data with unicode symbols
-        let mailOptions = {
-            from: '"5G mailer (noreply)" <cfb.back3@gmail.com>', // sender address
-            to: 'elmeknassi.h@gmail.com', // list of receivers
-            subject: 'Finalisez la création de votre compte ✔', // Subject line
-            html: `<p>Bonjour,<br><br>
-                    pour terminer votre inscription veuillez cliquer sur le lien suivant : <b>LIEN</b>.<br><br>
-                    A très bientôt sur 5G.<br><br>
-                    Merci de ne pas répondre à cet email.</p>
-                    `
-        };
-
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
+    if (req.body.login && req.body.email) {
+        mongoose.model('User').findOne({ login: req.body.login, email: req.body.email }, function (err, user) {
+            if (err) {
                 res.writeHead(300, { 'Content-Type': 'application/json' });
                 res.write(JSON.stringify({
                     type: 'error',
-                    code: 'E1004',
-                    description: err
+                    code: 'E1005',
+                    payload: err
                 }));
                 res.end();
-                return console.log(error);
+            } else if (user) {
+                let transporter = nodemailer.createTransport({
+                    host: 'smtp.gmail.com',
+                    port: 465,
+                    secure: true, // true for 465, false for other ports
+                    auth: {
+                        user: 'cfb.back3@gmail.com', // generated ethereal user
+                        pass: 'Ynov2018' // generated ethereal password
+                    }
+                });
+
+                // setup email data with unicode symbols
+                let mailOptions = {
+                    from: '"5G mailer (noreply)" <cfb.back3@gmail.com>', // sender address
+                    to: 'elmeknassi.h@gmail.com', // list of receivers
+                    subject: 'Finalisez la création de votre compte ✔', // Subject line
+                    html: `<p>Bonjour,<br><br>
+                                pour terminer votre inscription veuillez cliquer sur le lien suivant : <b>LIEN</b>.<br><br>
+                                A très bientôt sur 5G.<br><br>
+                                Merci de ne pas répondre à cet email.</p>
+                                `
+                };
+
+                transporter.sendMail(mailOptions, (error, info) => {
+                    if (error) {
+                        res.writeHead(300, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'error',
+                            code: 'E1004',
+                            description: err
+                        }));
+                        res.end();
+                        return console.log(error);
+                    } else {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'email',
+                            code: 'T1002',
+                            description: 'Email de confirmation envoyé.',
+                            payload: info
+                        }));
+                        res.end();
+                        console.log('Message sent: %s', info.messageId);
+                    }
+                });
             } else {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.writeHead(300, { 'Content-Type': 'application/json' });
                 res.write(JSON.stringify({
-                    type: 'email',
-                    code: 'T1002',
-                    description: 'Email de confirmation envoyé.',
-                    payload: info
+                    type: 'error',
+                    code: 'E1006',
+                    description: 'Aucun utilisateur avec ces informations.',
+                    payload: req.body
                 }));
                 res.end();
-                console.log('Message sent: %s', info.messageId);
             }
         });
-    }
 
-    /*         mongoose.model('User').register(req.body.login, req.body.password, req.body.email, function (err, registeredUser) {
-                if (err) {
-                    res.writeHead(300, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
-                        type: 'error',
-                        code: 'E1001',
-                        description: err
-                    }));
-                } else {
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
-                        type: 'registration',
-                        code: 'T1001',
-                        description: 'Vous êtes maintenant inscrit.',
-                        payload: registeredUser
-                    }));
-                }
-                res.end();
-            });
-        } else {
-            res.writeHead(300, { 'Content-Type': 'application/json' });
-            res.write(JSON.stringify({
-                type: 'error',
-                code: 'E1003',
-                description: 'L\'envoi d\'un email de confirmation nécessite les valeurs {login, email}'
-            }));
-            res.end();
-        } */
+    }
 });
 
 
