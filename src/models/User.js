@@ -11,12 +11,12 @@ const UserSchema = new Schema({
     avatarUrl: String,
     isOnline: Boolean,
     lastSeen: Date
-    }, {
+}, {
         timestamps: true,
     });
 
 
-UserSchema.methods.generateJWT = function() {
+UserSchema.methods.generateJWT = function () {
     const today = new Date();
     const expirationDate = new Date(today);
     expirationDate.setDate(today.getDate() + 60);
@@ -29,7 +29,7 @@ UserSchema.methods.generateJWT = function() {
 };
 
 
-UserSchema.methods.toAuthJSON = function() {
+UserSchema.methods.toAuthJSON = function () {
     return {
         _id: this._id,
         username: this.username,
@@ -40,12 +40,12 @@ UserSchema.methods.toAuthJSON = function() {
     };
 };
 
-UserSchema.statics.login = function(username, plainPassword, cb) {
-    return this.findOne({username: username, password: plainPassword}, cb);
+UserSchema.statics.login = function (username, plainPassword, cb) {
+    return this.findOne({ username: username, password: plainPassword }, cb);
 }
 
-UserSchema.statics.setConnected = function(user, cb) {
-    return this.findOne({username: user.username}, function(err, user) {
+UserSchema.statics.setConnected = function (user, cb) {
+    return this.findOne({ username: user.username }, function (err, user) {
         if (err)
             return cb(err);
         user.isOnline = true;
@@ -56,6 +56,36 @@ UserSchema.statics.setConnected = function(user, cb) {
             cb(null, savedUser);
         });
     });
+}
+
+UserSchema.statics.register = function (username, plainPassword, email, cb) {
+    if (username && plainPassword && email) {
+        return this.findOne({ username: username }, (err, existingUser) => {
+            if (err)
+                return cb(err);
+            if (existingUser)
+                return cb('User with username ' + existingUser.username + ' exists.');
+            else {
+                this.findOne({ email: email }, (err, existingUser) => {
+                    if (err)
+                        return cb(err);
+                    if (existingUser)
+                        return cb('User with email ' + existingUser.email + ' exists.');
+                    else {
+                        mongoose.model('User').create({username: username, password: plainPassword, email: email}, function (err, user) {
+                            if (err) {
+                                cb(err);
+                            } else {
+                                cb(null, user);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    } else {
+        return cb({ error: "One field missing." })
+    }
 }
 
 mongoose.model('User', UserSchema);

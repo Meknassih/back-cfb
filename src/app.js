@@ -83,10 +83,8 @@ app.post('/apirest/login', function (req, res) {
         } else {
             //console.log(JSON.stringify(user));
             if (user) {
-                console.log('found ', user.username)
                 mongoose.model('User').setConnected(user, function (err, user) {
                     if (err) {
-                        console.log('error on set connected ')
                         res.writeHead(503, { 'Content-Type': 'application/json' });
                         res.write(JSON.stringify({
                             type: 'error',
@@ -94,8 +92,7 @@ app.post('/apirest/login', function (req, res) {
                             description: 'Session expirée ou inexistante'
                         }));
                     } else {
-                        console.log('set connected ')
-                        //res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.write(JSON.stringify({
                             type: 'authentication',
                             code: 'T0001',
@@ -103,18 +100,15 @@ app.post('/apirest/login', function (req, res) {
                             payload: user
                         }));
                     }
-                    console.log('ending')
                     res.end();
                 });
             } else {
-                console.log('no user found ')
                 res.writeHead(300, { 'Content-Type': 'application/json' });
                 res.write(JSON.stringify({
                     type: 'error',
                     code: 'E0001',
                     description: 'Mauvais login ou mot de passe'
                 }));
-                console.log('ending')
                 res.end();
             }
         }
@@ -140,22 +134,32 @@ app.post('/apirest/register', function (req, res) {
     if (req.body.username &&
         req.body.password &&
         req.body.email) {
-
-        var userData = {
-            email: req.body.email,
-            username: req.body.username,
-            password: req.body.password,
-        };
-
-        mongoose.model('User').create(userData, function (err, user) {
+        mongoose.model('User').register(req.body.username, req.body.password, req.body.email, function(err, registeredUser) {
             if (err) {
-                res.json({ "success": false, "details": err });
+                res.writeHead(300, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'error',
+                    code: 'E1001',
+                    description: err
+                }));
             } else {
-                res.json({ "success": true, "details": 'Inscription réussie.' });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'registration',
+                    code: 'T1001',
+                    description: 'Vous êtes maintenant inscrit.',
+                    payload: registeredUser
+                }));
             }
+            res.end();
         });
     } else {
-        res.json({ "success": false, "details": "Une des valeurs est manquante." });
+        res.writeHead(300, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E1002',
+            description: 'Une des valeurs est manquante.'
+        }));
         res.end();
     }
 });
