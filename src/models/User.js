@@ -10,7 +10,8 @@ const UserSchema = new Schema({
     salt: String,
     avatarUrl: String,
     isOnline: Boolean,
-    lastSeen: Date
+    lastSeen: Date,
+    confirmed: Boolean
 }, {
         timestamps: true,
     });
@@ -39,6 +40,16 @@ UserSchema.methods.toAuthJSON = function () {
         token: this.generateJWT(),
     };
 };
+
+UserSchema.methods.setEmailConfirmed = function (cb) {
+    this.confirmed = true;
+    this.save(function(err, user) {
+        if (err)
+            return cb(err);
+        else
+            cb(null, user.email);
+    });
+}
 
 UserSchema.statics.login = function (username, plainPassword, cb) {
     return this.findOne({ login: username, password: plainPassword }, cb);
@@ -72,7 +83,7 @@ UserSchema.statics.register = function (username, plainPassword, email, cb) {
                     if (existingUser)
                         return cb('User with email ' + existingUser.email + ' exists.');
                     else {
-                        mongoose.model('User').create({login: username, password: plainPassword, email: email}, function (err, user) {
+                        mongoose.model('User').create({login: username, password: plainPassword, email: email, confirmed: false}, function (err, user) {
                             if (err) {
                                 cb(err);
                             } else {
