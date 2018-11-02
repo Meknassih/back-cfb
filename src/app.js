@@ -21,7 +21,7 @@ app.use(session({secret:"rezjrezkjrezklrj4376786", resave: false, saveUninitiali
 app.use(express.static(__dirname + '/statics'));
 
 //Configure Mongoose
-mongoose.connect('mongodb://localhost/data');
+mongoose.connect('mongodb://localhost/data', { useNewUrlParser: true });
 mongoose.set('debug', true);
 
 require('./models/User');
@@ -116,12 +116,13 @@ app.post('/apirest/login', function (req, res) {
                         }));
                     } else {
                         req.session.user = user;
+                        req.session.token = encrypt(user.login + user.email + new Date().valueOf())
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.write(JSON.stringify({
                             type: 'authentication',
                             code: 'T0001',
                             description: 'Vous êtes maintenant connecté',
-                            payload: user
+                            payload: {token: req.session.token}
                         }));
                     }
                     res.end();
@@ -338,6 +339,16 @@ app.get('/logout', function (req, res) {
     res.end();
 
 
+});
+
+app.post('/apirest/client-heart-beat', function(req, res) {
+    if (req.body.token || req.body.payload.token) {
+        const clientToken = req.body.token? req.body.token:req.body.payload.token;
+        console.log('Client token rcv ', clientToken, ' stored token ', req.session.token);
+        res.sendStatus(200);
+        return;
+    }
+    res.sendStatus(400);
 });
 
 app.listen(port, () => console.info(`Back-end server listenning on ${port}`));
