@@ -17,14 +17,13 @@ const crypto = require('crypto');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(require('morgan')('dev'));
-app.use(session({secret:"rezjrezkjrezklrj4376786", resave: false, saveUninitialized:true}));
+app.use(session({ secret: "rezjrezkjrezklrj4376786", resave: false, saveUninitialized: true }));
 app.use(express.static(__dirname + '/statics'));
 
 //Configure Mongoose
 mongoose.connect('mongodb://localhost/data', { useNewUrlParser: true });
 mongoose.set('debug', true);
-
-require('./models/User');
+const _user = require('./models/User');
 
 app.get('/', function (req, res) {
 
@@ -92,61 +91,12 @@ app.get('/login', function (req, res) {
     });
 });
 
-app.post('/apirest/login', function (req, res) {
-    mongoose.model('User').login(req.body.login, req.body.password, function (err, user) {
-        if (err) {
-            res.writeHead(503, { 'Content-Type': 'application/json' });
-            res.write(JSON.stringify({
-                type: 'error',
-                code: 'E0002',
-                description: 'Session expirée ou inexistante'
-            }));
-            console.log('ending')
-            res.end();
-        } else {
-            //console.log(JSON.stringify(user));
-            if (user) {
-                mongoose.model('User').setConnected(user, function (err, user) {
-                    if (err) {
-                        res.writeHead(503, { 'Content-Type': 'application/json' });
-                        res.write(JSON.stringify({
-                            type: 'error',
-                            code: 'E0002',
-                            description: 'Session expirée ou inexistante'
-                        }));
-                    } else {
-                        req.session.user = user;
-                        req.session.token = encrypt(user.login + user.email + new Date().valueOf())
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.write(JSON.stringify({
-                            type: 'authentication',
-                            code: 'T0001',
-                            description: 'Vous êtes maintenant connecté',
-                            payload: {token: req.session.token}
-                        }));
-                    }
-                    res.end();
-                });
-            } else {
-                res.writeHead(300, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
-                    type: 'error',
-                    code: 'E0001',
-                    description: 'Mauvais login ou mot de passe'
-                }));
-                res.end();
-            }
-        }
-    });
-});
-
 app.get('/dashboard', function (req, res) {
-    if(!req.session.user){
+    if (!req.session.user) {
         return res.status(401).send();
     }
     return res.status(200).send("WELCOME !!");
 });
-
 
 app.post('/login', function (req, res) {
     let filePath = path.join(_templateDir, '/identification.html');
@@ -159,6 +109,65 @@ app.post('/login', function (req, res) {
             res.end();
         } else {
             console.log(err);
+        }
+    });
+});
+
+app.post('/apirest/login', function (req, res) {
+    if (!req.body.login || !req.body.password) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({
+                type: 'error',
+                code: 'E0002',
+                description: 'Veuillez renseigner un nom d\'utilisateur et un mot de passe'
+            }));
+            return res.end();
+    }
+    mongoose.model('User').login(req.body.login, req.body.password, function (err, user) {
+        if (err) {
+            res.writeHead(503, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({
+                type: 'error',
+                code: 'E0002',
+                description: 'Session expirée ou inexistante',
+                payload: err
+            }));
+            return res.end();
+        } else {
+            console.log('found user ',JSON.stringify(user))
+            if (user) {
+                user.setOnline(function (err) {
+                    if (err) {
+                        res.writeHead(503, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'error',
+                            code: 'E0002',
+                            description: 'Session expirée ou inexistante',
+                            payload: err
+                        }));
+                        return res.end();
+                    } else {
+                        req.session.user = user;
+                        req.session.token = encrypt(user.login + new Date().valueOf() + user.email)
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'authentication',
+                            code: 'T0001',
+                            description: 'Vous êtes maintenant connecté',
+                            payload: { token: req.session.token }
+                        }));
+                    }
+                    return res.end();
+                });
+            } else {
+                res.writeHead(300, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'error',
+                    code: 'E0001',
+                    description: 'Mauvais login ou mot de passe'
+                }));
+                res.end();
+            }
         }
     });
 });
@@ -319,10 +328,10 @@ app.get('/email/confirm/*', function (req, res) {
     });
 });
 
-app.get('/logout', function (req, res) {
+app.get('/apirest/logout', function (req, res) {
     res.writeHead(503, { 'Content-Type': 'application/json' });
 
-    if(req.session.user){
+    if (req.session.user) {
         req.session.destroy();
         res.write(JSON.stringify({
             type: 'authentication',
@@ -337,18 +346,54 @@ app.get('/logout', function (req, res) {
         }));
     }
     res.end();
-
-
 });
 
-app.post('/apirest/client-heart-beat', function(req, res) {
-    if (req.body.token || req.body.payload.token) {
-        const clientToken = req.body.token? req.body.token:req.body.payload.token;
-        console.log('Client token rcv ', clientToken, ' stored token ', req.session.token);
-        res.sendStatus(200);
-        return;
+app.post('/apirest/client-heart-beat', function (req, res) {
+    console.log('Client token rcv ', req.body.token, ' stored token ', req.session.token);
+    if ((!req.body.token && !req.body.payload) || !req.session.user || !req.session.token) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0003',
+            description: 'Bail non renouvelable'
+        }));
+        return res.end();
+    } else {
+        const clientToken = req.body.token ? req.body.token : req.body.payload.token;
+        if (clientToken === req.session.token) {
+            const user = new _user.UserModel(req.session.user);
+            console.log('session user ', JSON.stringify(user));
+            user.setOnline(function (err) {
+                if (err) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'error',
+                        code: 'E0003',
+                        description: 'Bail non renouvelable',
+                        payload: err
+                    }));
+                    return res.end();
+                } else {
+                    req.session.user = user;
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'authentication',
+                        code: 'T0002',
+                        description: 'Votre bail a été renouvelé'
+                    }));
+                    return res.end();
+                }
+            });
+        } else {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({
+                type: 'error',
+                code: 'E0003',
+                description: 'Bail non renouvelable'
+            }));
+            res.end();
+        }
     }
-    res.sendStatus(400);
 });
 
-app.listen(port, () => console.info(`Back-end server listenning on ${port}`));
+app.listen(port, () => console.info(`Back-end server listenning on port ${port}`));

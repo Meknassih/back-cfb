@@ -43,7 +43,7 @@ UserSchema.methods.toAuthJSON = function () {
 
 UserSchema.methods.setEmailConfirmed = function (cb) {
     this.confirmed = true;
-    this.save(function(err, user) {
+    this.save(function (err, user) {
         if (err)
             return cb(err);
         else
@@ -51,22 +51,19 @@ UserSchema.methods.setEmailConfirmed = function (cb) {
     });
 }
 
-UserSchema.statics.login = function (username, plainPassword, cb) {
-    return this.findOne({ login: username, password: plainPassword }, cb);
-}
-
-UserSchema.statics.setConnected = function (user, cb) {
-    return this.findOne({ login: user.login }, function (err, user) {
+UserSchema.methods.setOnline = function (cb) {
+    this.isOnline = true;
+    this.updatedAt = new Date();
+    this.lastSeen = new Date();
+    this.replaceOne(this, { upsert: true, timestamps: false }, function (err, savedUser) {
         if (err)
             return cb(err);
-        user.isOnline = true;
-        user.lastSeen = new Date();
-        user.save(function (err, savedUser) {
-            if (err)
-                return cb(err);
-            cb(null, savedUser);
-        });
+        cb(null, savedUser);
     });
+}
+
+UserSchema.statics.login = function (username, plainPassword, cb) {
+    return this.findOne({ login: username, password: plainPassword }, cb);
 }
 
 UserSchema.statics.register = function (username, plainPassword, email, cb) {
@@ -83,7 +80,7 @@ UserSchema.statics.register = function (username, plainPassword, email, cb) {
                     if (existingUser)
                         return cb('User with email ' + existingUser.email + ' exists.');
                     else {
-                        mongoose.model('User').create({login: username, password: plainPassword, email: email, confirmed: false}, function (err, user) {
+                        mongoose.model('User').create({ login: username, password: plainPassword, email: email, confirmed: false }, function (err, user) {
                             if (err) {
                                 cb(err);
                             } else {
@@ -99,4 +96,5 @@ UserSchema.statics.register = function (username, plainPassword, email, cb) {
     }
 }
 
-mongoose.model('User', UserSchema);
+const UserModel = mongoose.model('User', UserSchema);
+module.exports = { UserModel };
