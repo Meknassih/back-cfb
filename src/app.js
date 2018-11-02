@@ -11,6 +11,7 @@ const passport = require('passport-jwt');
 const nodemailer = require('nodemailer');
 const hash = require('object-hash');
 const publicIp = require('public-ip');
+const crypto = require('crypto');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -37,6 +38,23 @@ app.get('/', function (req, res) {
         }
     });
 });
+
+// Setting up cryptography
+const algorithm = 'aes-256-ctr';
+const password = 'mp45L)dv:T';
+function encrypt(text) {
+    var cipher = crypto.createCipher(algorithm, password)
+    var crypted = cipher.update(text, 'utf8', 'hex')
+    crypted += cipher.final('hex');
+    return crypted;
+}
+
+function decrypt(text) {
+    var decipher = crypto.createDecipher(algorithm, password)
+    var dec = decipher.update(text, 'hex', 'utf8')
+    dec += decipher.final('utf8');
+    return dec;
+}
 
 app.get('/about', function (req, res) {
     let filePath = path.join(_templateDir, '/propos.html');
@@ -168,7 +186,7 @@ app.post('/apirest/register', function (req, res) {
 });
 
 app.post('/apirest/confirmation-mail', function (req, res) {
-    console.log('dirname ', __dirname);
+    console.log('encrypted ', req.body.email, '=', encrypt(req.body.email));
     if (req.body.login && req.body.email) {
         mongoose.model('User').findOne({ login: req.body.login, email: req.body.email }, function (err, user) {
             if (err) {
@@ -196,7 +214,7 @@ app.post('/apirest/confirmation-mail', function (req, res) {
                         to: 'elmeknassi.h@gmail.com', // list of receivers
                         subject: 'Finalisez la création de votre compte ✔', // Subject line
                         html: `<p>Bonjour,<br><br>
-                                pour terminer votre inscription veuillez cliquer sur le lien suivant : <b><a href="http://${ip}/email/confirm/${hash({login:user.login, email:user.email})} ">confirmer mon adresse</a></b>.<br><br>
+                                pour terminer votre inscription veuillez cliquer sur le lien suivant : <b><a href="http://${ip}/email/confirm/${hash({ login: user.login, email: user.email })} ">confirmer mon adresse</a></b>.<br><br>
                                 A très bientôt sur 5G.<br><br>
                                 Merci de ne pas répondre à cet email.</p>
                                 `
@@ -241,7 +259,53 @@ app.post('/apirest/confirmation-mail', function (req, res) {
     }
 });
 
-
+app.get('/email/confirm/*', function (req, res) {
+    let urlWords = req.url.split('/');
+    console.log('words ', urlWords);
+    const userEmail = decrypt(urlWords.pop());
+    mongoose.model('User').findOne({ email: userEmail, confirmed: false }, function (err, user) {
+        if (err) {
+            res.writeHead(300, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({
+                type: 'error',
+                code: 'E1007',
+                payload: err
+            }));
+            res.end();
+            return;
+        } else {
+            if (user) {
+                user.setEmailConfirmed(function (err, email) {
+                    if (err) {
+                        res.writeHead(300, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'error',
+                            code: 'E1008',
+                            payload: err
+                        }));
+                        res.end();
+                    } else {
+                        res.writeHead(200, { 'Content-Type': 'text/html' });
+                        res.write(`<html><head><title>5G - Confirmation</title></head>
+                        <body>
+                        <h1>5G</h1><h2>Votre adresse e-mail a été confirmée</h2></br></br>
+                        <p> 
+                        Merci d'avoir confirmé votre adresse e-mail : ${email}. Vous pouvez désormais fermer cette fenêtre.
+                        </p>
+                        </body></html>`);
+                        res.end();
+                    }
+                });
+            } else {
+                res.writeHead(400, { 'Content-Type': 'text/html' });
+                res.write(`<html><head><title>5G - Error</title></head>
+                <body>
+                <h1>Error 400 - Bad request</h1></html>`);
+                res.end();
+            }
+        }
+    });
+});
 
 app.get('/logout', function (req, res) {
     let filePath = path.join(_templateDir, '/accueil.html');
