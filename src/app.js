@@ -225,7 +225,7 @@ app.post('/apirest/confirmation-mail', function (req, res) {
                         to: 'elmeknassi.h@gmail.com', // list of receivers
                         subject: 'Finalisez la création de votre compte ✔', // Subject line
                         html: `<p>Bonjour,<br><br>
-                                pour terminer votre inscription veuillez cliquer sur le lien suivant : <b><a href="http://${ip}/email/confirm/${hash({ login: user.login, email: user.email })} ">confirmer mon adresse</a></b>.<br><br>
+                                pour terminer votre inscription veuillez cliquer sur le lien suivant : <b><a href="http://${ip}/email/confirm/${encrypt(user.email)} ">confirmer mon adresse</a></b>.<br><br>
                                 A très bientôt sur 5G.<br><br>
                                 Merci de ne pas répondre à cet email.</p>
                                 `
@@ -274,6 +274,7 @@ app.get('/email/confirm/*', function (req, res) {
     let urlWords = req.url.split('/');
     console.log('words ', urlWords);
     const userEmail = decrypt(urlWords.pop());
+    console.log('userEmail :', userEmail);
     mongoose.model('User').findOne({ email: userEmail, confirmed: false }, function (err, user) {
         if (err) {
             res.writeHead(300, { 'Content-Type': 'application/json' });
