@@ -343,7 +343,7 @@ app.get('/apirest/logout', function (req, res) {
     } else {
         res.write(JSON.stringify({
             type: 'authentication',
-            code: 'E0002',
+            code: 'E0003',
             description: 'Session expirée ou inexistante'
         }));
     }
@@ -410,7 +410,7 @@ app.post('/apirest/get-all', function (req, res) {
     } else {
         if (req.body.token === req.session.token) {
             mongoose.model('User').getAll(req.body.strategy, function (err, users) {
-                console.log('getAll user ', JSON.stringify(users));
+                //console.log('getAll user ', JSON.stringify(users));
                 if (err) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
                     res.write(JSON.stringify({
