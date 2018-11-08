@@ -13,6 +13,7 @@ const nodemailer = require('nodemailer');
 const hash = require('object-hash');
 const publicIp = require('public-ip');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -116,12 +117,12 @@ app.post('/login', function (req, res) {
 app.post('/apirest/login', function (req, res) {
     if (!req.body.login || !req.body.password) {
         res.writeHead(503, { 'Content-Type': 'application/json' });
-            res.write(JSON.stringify({
-                type: 'error',
-                code: 'E0002',
-                description: 'Veuillez renseigner un nom d\'utilisateur et un mot de passe'
-            }));
-            return res.end();
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0002',
+            description: 'Veuillez renseigner un nom d\'utilisateur et un mot de passe'
+        }));
+        return res.end();
     }
     mongoose.model('User').login(req.body.login, req.body.password, function (err, user) {
         if (err) {
@@ -134,7 +135,7 @@ app.post('/apirest/login', function (req, res) {
             }));
             return res.end();
         } else {
-            console.log('found user ',JSON.stringify(user))
+            console.log('found user ', JSON.stringify(user))
             if (user) {
                 user.setOnline(function (err) {
                     if (err) {
@@ -391,6 +392,51 @@ app.post('/apirest/client-heart-beat', function (req, res) {
                 type: 'error',
                 code: 'E0003',
                 description: 'Bail non renouvelable'
+            }));
+            res.end();
+        }
+    }
+});
+
+app.post('/apirest/get-all', function (req, res) {
+    if (!req.body.token || !req.session.user || !req.session.token) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0004',
+            description: 'Session expirée ou inexistante'
+        }));
+        return res.end();
+    } else {
+        if (req.body.token === req.session.token) {
+            mongoose.model('User').getAll(req.body.strategy, function (err, users) {
+                console.log('getAll user ', JSON.stringify(users));
+                if (err) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'error',
+                        code: 'E0004',
+                        description: 'Une erreur interne s\'est produite',
+                        payload: err
+                    }));
+                    return res.end();
+                } else {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'members',
+                        code: 'T0004',
+                        description: 'Liste des utilisateurs inscrits',
+                        payload: users
+                    }));
+                    return res.end();
+                }
+            });
+        } else {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({
+                type: 'error',
+                code: 'E0004',
+                description: 'Session expirée ou inexistante'
             }));
             res.end();
         }

@@ -96,5 +96,22 @@ UserSchema.statics.register = function (username, plainPassword, email, cb) {
     }
 }
 
+UserSchema.statics.getAll = function (strategy = undefined, cb) {
+    mongoose.model('User').find({}, '-password -_id -__v', function (err, users) {
+        if (err)
+            return cb(err);
+
+        switch (strategy) {
+            case 'lastSeen':
+                users = users.sort((ua, ub) => (ua.lastSeen.valueOf() - ub.lastSeen.valueOf()));
+                break;
+            default:
+                users = users.sort((ua, ub) => (ua.login - ub.login));
+                break;
+        }
+        cb(null, users);
+    });
+}
+
 const UserModel = mongoose.model('User', UserSchema);
 module.exports = { UserModel };
