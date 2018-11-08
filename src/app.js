@@ -14,6 +14,7 @@ const hash = require('object-hash');
 const publicIp = require('public-ip');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const secretKey = 'toto';
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -25,6 +26,7 @@ app.use(express.static(__dirname + '/statics'));
 mongoose.connect('mongodb://localhost/data', { useNewUrlParser: true });
 mongoose.set('debug', true);
 const _user = require('./models/User');
+const _discussion = require('./models/Discussion');
 
 app.get('/', function (req, res) {
 
@@ -98,6 +100,71 @@ app.get('/dashboard', function (req, res) {
     }
     return res.status(200).send("WELCOME !!");
 });
+
+app.get('/apirest/discussions/get-or-create', function (req, res) {
+    if(req.session.user){
+        // récupérer le label + creator depuis le body
+        var creator = req.session.user;
+        var label = 'label';
+        var members = ['member1', 'member2'];
+
+        // Si le label est fourni
+        if(label){
+            mongoose.model('Discussion').findOne({creator: creator, label: label}, function (err, discussion) {
+
+            });
+        } else {
+            // Sinon on se base sur la liste des membres
+            mongoose.model('Discussion').findOne({creator: creator, members: members}, function (err, discussion) {
+                if(err){
+                    if(members.length > 9){
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'error',
+                            code: 'E0005',
+                            description: 'Trop de membres tuent les membres',
+                            payload: discussion2
+                        }));
+                    } else {
+                        mongoose.model('Discussion').create({ creator: creator, members: members}, function (err, discussion2) {
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.write(JSON.stringify({
+                                type: 'discussion',
+                                code: 'T0007',
+                                description: 'Création d\'une discussion',
+                                payload: discussion2
+                            }));
+                        });
+                    }
+                } else {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'registration',
+                        code: 'T0006',
+                        description: 'Récupération d\'une discussion existante',
+                        payload: discussion
+                    }));
+                }
+            });
+        }
+        mongoose.model('Discussion').findOne({creator: req.session.user, label: 'label'}, function (err, user) {
+            mongoose.model('Discussion').create({ creator: user, members: 'rezr', label: 'rezr'}, function (err, discu) {
+                res.send(discu);
+            });
+        });
+        mongoose.model('User').findOne({login: 'test'}, function (err, user) {
+            mongoose.model('Discussion').create({ creator: user, members: 'rezr', label: 'rezr'}, function (err, discu) {
+                res.send(discu);
+            });
+        });
+    }
+
+
+});
+
+
+
+
 
 app.post('/login', function (req, res) {
     let filePath = path.join(_templateDir, '/identification.html');
