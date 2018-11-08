@@ -66,6 +66,10 @@ UserSchema.statics.login = function (username, plainPassword, cb) {
     return this.findOne({ login: username, password: plainPassword }, cb);
 }
 
+UserSchema.statics.getByUsername = function (username, cb) {
+    return this.findOne({ login: username}, cb);
+}
+
 UserSchema.statics.register = function (username, plainPassword, email, cb) {
     if (username && plainPassword && email) {
         return this.findOne({ login: username }, (err, existingUser) => {
