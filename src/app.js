@@ -101,48 +101,43 @@ app.get('/dashboard', function (req, res) {
     return res.status(200).send("WELCOME !!");
 });
 
-app.post('/apirest/discussions/get-or-create', function (req, res) {
-    if(req.session.user){
+app.post('/restapi/discussions/get-or-create', function (req, res) {
+    if (req.session.user) {
         // récupérer le label + creator depuis le body
-        var creator = req.session.user.login;
-        var label = req.body.label;
-        var members = req.body.members;
+        const creator = req.session.user.login;
+        const label = req.body.label;
+        const members = req.body.members;
+        let conditions;
 
-        // Si le label est fourni
-        if(label){
-            mongoose.model('Discussion').findOne({creator: creator, label: label}, function (err, discussion) {
-                if(!discussion){
-                    if(members == undefined) {
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.write(JSON.stringify({
-                            type: 'error',
-                            code: 'E0004',
-                            description: 'Une discussion doit décrire des membres'
-                        }));
-                        res.end();
-                    } else if (Array.isArray(members) && members.length > 9){
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.write(JSON.stringify({
-                            type: 'error',
-                            code: 'E0005',
-                            description: 'Trop de membres tuent les membres'
-                        }));
-                        res.end();
-                    } else {
-                        mongoose.model('Discussion').create({ creator: creator, members: members, label: label}, function (err2, discussion2) {
-                            res.writeHead(200, { 'Content-Type': 'application/json' });
-                            res.write(JSON.stringify({
-                                type: 'discussion',
-                                code: 'T0007',
-                                description: 'Création d\'une discussion',
-                                payload: discussion2
-                            }));
-                            res.end();
+        if (label) // Si le label est fourni
+            conditions = { creator: creator, label: label };
+        else // Sinon on se base sur la liste des membres
+            conditions = { creator: creator, members: members };
 
-                        });
-                    }
-                } else {
-                    // La discussion existe => on la retourne au client
+        //TODO: implémenter _message.MessageModel.getLastMessages() et les ajouter à la discussion
+        _discussion.DiscussionModel.getDiscussion(conditions, function (err, discussion) {
+            if (err) {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'error',
+                    code: 'E0006',
+                    description: 'Une erreur s\'est produite lors de la récupération de discussions',
+                    payload: err
+                }));
+                return res.end();
+            }
+
+            if (discussion) {
+                if (discussion.members.length > 9) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'error',
+                        code: 'E0005',
+                        description: 'Trop de membres tuent les membres',
+                        payload: {totalMembers: discussion.members.length}
+                    }));
+                    return res.end();
+                } else if ((new Date().valueOf() - discussion.createdAt.valueOf()) > 5000) {
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.write(JSON.stringify({
                         type: 'discussion',
@@ -150,60 +145,29 @@ app.post('/apirest/discussions/get-or-create', function (req, res) {
                         description: 'Récupération d\'une discussion existante',
                         payload: discussion
                     }));
-                    res.end();
-                }
-            });
-        } else {
-            // Sinon on se base sur la liste des membres
-            mongoose.model('Discussion').findOne({creator: creator, members: members}, function (err, discussion) {
-                if(discussion == null){
-                    if(members == 'undefined') {
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.write(JSON.stringify({
-                            type: 'error',
-                            code: 'E0004',
-                            description: 'Une discussion doit décrire des membres'
-                        }));
-                        res.end();
-                    } else if (members.length > 9){
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.write(JSON.stringify({
-                            type: 'error',
-                            code: 'E0005',
-                            description: 'Trop de membres tuent les membres'
-                        }));
-                        res.end();
-                    } else {
-                        mongoose.model('Discussion').create({ creator: creator, members: members, label: label}, function (err2, discussion2) {
-                            res.writeHead(200, { 'Content-Type': 'application/json' });
-                            res.write(JSON.stringify({
-                                type: 'discussion',
-                                code: 'T0007',
-                                description: 'Création d\'une discussion',
-                                payload: discussion2
-                            }));
-                            res.end();
-
-                        });
-                    }
+                    return res.end();
                 } else {
-                    // La discussion existe => on la retourne au client
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.write(JSON.stringify({
                         type: 'discussion',
-                        code: 'T0006',
-                        description: 'Récupération d\'une discussion existante',
+                        code: 'T0007',
+                        description: 'Création d\'une discussion',
                         payload: discussion
                     }));
-                    res.end();
-
+                    return res.end();
                 }
-            });
-        }
-
+            }
+        })
+    } else {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0006',
+            description: 'Session expirée ou inexistante',
+            payload: err
+        }));
+        return res.end();
     }
-
-
 });
 
 
@@ -225,7 +189,7 @@ app.post('/login', function (req, res) {
     });
 });
 
-app.post('/apirest/login', function (req, res) {
+app.post('/restapi/login', function (req, res) {
     if (!req.body.login || !req.body.password) {
         res.writeHead(503, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -284,7 +248,7 @@ app.post('/apirest/login', function (req, res) {
     });
 });
 
-app.post('/apirest/register', function (req, res) {
+app.post('/restapi/register', function (req, res) {
     if (req.body.login &&
         req.body.password &&
         req.body.email) {
@@ -318,7 +282,7 @@ app.post('/apirest/register', function (req, res) {
     }
 });
 
-app.post('/apirest/confirmation-mail', function (req, res) {
+app.post('/restapi/confirmation-mail', function (req, res) {
     console.log('encrypted ', req.body.email, '=', encrypt(req.body.email));
     if (req.body.login && req.body.email) {
         mongoose.model('User').findOne({ login: req.body.login, email: req.body.email }, function (err, user) {
@@ -441,7 +405,7 @@ app.get('/email/confirm/*', function (req, res) {
     });
 });
 
-app.get('/apirest/logout', function (req, res) {
+app.get('/restapi/logout', function (req, res) {
     res.writeHead(503, { 'Content-Type': 'application/json' });
 
     if (req.session.user) {
@@ -461,7 +425,7 @@ app.get('/apirest/logout', function (req, res) {
     res.end();
 });
 
-app.post('/apirest/client-heart-beat', function (req, res) {
+app.post('/restapi/client-heart-beat', function (req, res) {
     console.log('Client token rcv ', req.body.token, ' stored token ', req.session.token);
     if ((!req.body.token && !req.body.payload) || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -509,7 +473,7 @@ app.post('/apirest/client-heart-beat', function (req, res) {
     }
 });
 
-app.post('/apirest/get-all', function (req, res) {
+app.post('/restapi/get-all', function (req, res) {
     if (!req.body.token || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({

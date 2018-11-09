@@ -121,4 +121,4 @@ UserSchema.statics.getAll = function (strategy = undefined, cb) {
 }
 
 const UserModel = mongoose.model('User', UserSchema);
-module.exports = { UserModel };
+module.exports = { UserModel, UserSchema };
