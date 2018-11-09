@@ -443,4 +443,49 @@ app.post('/apirest/get-all', function (req, res) {
     }
 });
 
+app.post('/apirest/get-onlines', function (req, res) {
+    if (!req.body.token || !req.session.user || !req.session.token) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0005',
+            description: 'Session expirée ou inexistante'
+        }));
+        return res.end();
+    } else {
+        if (req.body.token === req.session.token) {
+            mongoose.model('User').getOnlines(req.body.strategy, function (err, users) {
+                //console.log('getAll user ', JSON.stringify(users));
+                if (err) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'error',
+                        code: 'E0005',
+                        description: 'Une erreur interne s\'est produite',
+                        payload: err
+                    }));
+                    return res.end();
+                } else {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'members',
+                        code: 'T0005',
+                        description: 'Liste des utilisateurs connectés',
+                        payload: users
+                    }));
+                    return res.end();
+                }
+            });
+        } else {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({
+                type: 'error',
+                code: 'E0005',
+                description: 'Session expirée ou inexistante'
+            }));
+            res.end();
+        }
+    }
+});
+
 app.listen(port, () => console.info(`Back-end server listenning on port ${port}`));

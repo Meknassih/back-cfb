@@ -96,12 +96,32 @@ UserSchema.statics.register = function (username, plainPassword, email, cb) {
     }
 }
 
+UserSchema.statics.getOnlines = function (strategy = undefined, cb) {
+    mongoose.model('User').find({isOnline: true}, '-password -_id -__v', function (err, users) {
+        if (err)
+            return cb(err);
+
+        // console.log('users retrieved : ', JSON.stringify(users));
+        
+        switch (strategy) {
+            case 'lastSeen':
+            users = users.sort((ua, ub) => (+ub.lastSeen||0 < +ua.lastSeen||0));
+            break;
+            default:
+            users = users.sort((ua, ub) => (ub.login.charAt(0) < ua.login.charAt(0)));
+            break;
+        }
+        // console.log('users sorted : ', JSON.stringify(users));
+        cb(null, users);
+    });
+}
+
 UserSchema.statics.getAll = function (strategy = undefined, cb) {
     mongoose.model('User').find({}, '-password -_id -__v', function (err, users) {
         if (err)
             return cb(err);
 
-        console.log('users retrieved : ', JSON.stringify(users));
+        // console.log('users retrieved : ', JSON.stringify(users));
         
         switch (strategy) {
             case 'lastSeen':
@@ -111,7 +131,7 @@ UserSchema.statics.getAll = function (strategy = undefined, cb) {
             users = users.sort((ua, ub) => (ub.login.charAt(0) < ua.login.charAt(0)));
             break;
         }
-        console.log('users sorted : ', JSON.stringify(users));
+        // console.log('users sorted : ', JSON.stringify(users));
         cb(null, users);
     });
 }
