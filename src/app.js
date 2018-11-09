@@ -14,6 +14,7 @@ const hash = require('object-hash');
 const publicIp = require('public-ip');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const secretKey = 'toto';
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -114,7 +115,7 @@ app.post('/login', function (req, res) {
     });
 });
 
-app.post('/apirest/login', function (req, res) {
+app.post('/restapi/login', function (req, res) {
     if (!req.body.login || !req.body.password) {
         res.writeHead(503, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -173,7 +174,7 @@ app.post('/apirest/login', function (req, res) {
     });
 });
 
-app.post('/apirest/register', function (req, res) {
+app.post('/restapi/register', function (req, res) {
     if (req.body.login &&
         req.body.password &&
         req.body.email) {
@@ -207,7 +208,7 @@ app.post('/apirest/register', function (req, res) {
     }
 });
 
-app.post('/apirest/confirmation-mail', function (req, res) {
+app.post('/restapi/confirmation-mail', function (req, res) {
     console.log('encrypted ', req.body.email, '=', encrypt(req.body.email));
     if (req.body.login && req.body.email) {
         mongoose.model('User').findOne({ login: req.body.login, email: req.body.email }, function (err, user) {
@@ -330,17 +331,21 @@ app.get('/email/confirm/*', function (req, res) {
     });
 });
 
-app.get('/apirest/logout', function (req, res) {
-    res.writeHead(503, { 'Content-Type': 'application/json' });
+app.get('/restapi/logout', function (req, res) {
+    let payload = jwt.verify(req.body.jwt, secretKey);
+    req.body.token = payload.token;
 
-    if (req.session.user) {
+    if (req.session.user && (req.body.token === req.session.token)) {
         req.session.destroy();
-        res.write(JSON.stringify({
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        payload = jwt.sign({
             type: 'authentication',
             code: 'T0003',
             description: 'Vous avez bien été déconnecté'
-        }));
+        });
+        res.write(JSON.stringify({jwt: payload}));
     } else {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
             type: 'authentication',
             code: 'E0003',
@@ -350,8 +355,9 @@ app.get('/apirest/logout', function (req, res) {
     res.end();
 });
 
-app.post('/apirest/client-heart-beat', function (req, res) {
-    console.log('Client token rcv ', req.body.token, ' stored token ', req.session.token);
+app.post('/restapi/client-heart-beat', function (req, res) {
+    let payload = jwt.verify(req.body.jwt, secretKey);
+    req.body.token = payload.token;
     if ((!req.body.token && !req.body.payload) || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -378,11 +384,12 @@ app.post('/apirest/client-heart-beat', function (req, res) {
                 } else {
                     req.session.user = user;
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'authentication',
                         code: 'T0002',
                         description: 'Votre bail a été renouvelé'
-                    }));
+                    }, secretKey)
+                    res.write(JSON.stringify({jwt: payload}));
                     return res.end();
                 }
             });
@@ -398,7 +405,9 @@ app.post('/apirest/client-heart-beat', function (req, res) {
     }
 });
 
-app.post('/apirest/get-all', function (req, res) {
+app.post('/restapi/members/get-all', function (req, res) {
+    let payload = jwt.verify(req.body.jwt, secretKey);
+    req.body.token = payload.token;
     if (!req.body.token || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -422,12 +431,13 @@ app.post('/apirest/get-all', function (req, res) {
                     return res.end();
                 } else {
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'members',
                         code: 'T0004',
                         description: 'Liste des utilisateurs inscrits',
                         payload: users
-                    }));
+                    }, secretKey);
+                    res.write(JSON.stringify({jwt: payload}));
                     return res.end();
                 }
             });
@@ -443,7 +453,9 @@ app.post('/apirest/get-all', function (req, res) {
     }
 });
 
-app.post('/apirest/get-onlines', function (req, res) {
+app.post('/restapi/members/get-onlines', function (req, res) {
+    let payload = jwt.verify(req.body.jwt, secretKey);
+    req.body.token = payload.token;
     if (!req.body.token || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -467,12 +479,13 @@ app.post('/apirest/get-onlines', function (req, res) {
                     return res.end();
                 } else {
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'members',
                         code: 'T0005',
                         description: 'Liste des utilisateurs connectés',
                         payload: users
-                    }));
+                    }, secretKey);
+                    res.write(JSON.stringify({jwt: payload}));
                     return res.end();
                 }
             });
