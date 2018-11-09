@@ -5,7 +5,7 @@ var  userSchema = mongoose.model('User').schema;
 const { Schema } = mongoose;
 
 const DiscussionSchema = new Schema({
-    creator: userSchema,
+    creator: String,
     members: [String],
     label: String,
 }, {

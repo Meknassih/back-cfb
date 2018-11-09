@@ -101,32 +101,35 @@ app.get('/dashboard', function (req, res) {
     return res.status(200).send("WELCOME !!");
 });
 
-app.get('/apirest/discussions/get-or-create', function (req, res) {
+app.post('/apirest/discussions/get-or-create', function (req, res) {
     if(req.session.user){
         // récupérer le label + creator depuis le body
-        var creator = req.session.user;
-        var label = 'label';
-        var members = ['member1', 'member2'];
+        var creator = req.session.user.login;
+        var label = req.body.label;
+        var members = req.body.members;
 
         // Si le label est fourni
         if(label){
             mongoose.model('Discussion').findOne({creator: creator, label: label}, function (err, discussion) {
-
-            });
-        } else {
-            // Sinon on se base sur la liste des membres
-            mongoose.model('Discussion').findOne({creator: creator, members: members}, function (err, discussion) {
-                if(err){
-                    if(members.length > 9){
+                if(!discussion){
+                    if(members == undefined) {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'error',
+                            code: 'E0004',
+                            description: 'Une discussion doit décrire des membres'
+                        }));
+                        res.end();
+                    } else if (Array.isArray(members) && members.length > 9){
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.write(JSON.stringify({
                             type: 'error',
                             code: 'E0005',
-                            description: 'Trop de membres tuent les membres',
-                            payload: discussion2
+                            description: 'Trop de membres tuent les membres'
                         }));
+                        res.end();
                     } else {
-                        mongoose.model('Discussion').create({ creator: creator, members: members}, function (err, discussion2) {
+                        mongoose.model('Discussion').create({ creator: creator, members: members, label: label}, function (err2, discussion2) {
                             res.writeHead(200, { 'Content-Type': 'application/json' });
                             res.write(JSON.stringify({
                                 type: 'discussion',
@@ -134,29 +137,70 @@ app.get('/apirest/discussions/get-or-create', function (req, res) {
                                 description: 'Création d\'une discussion',
                                 payload: discussion2
                             }));
+                            res.end();
+
                         });
                     }
                 } else {
+                    // La discussion existe => on la retourne au client
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.write(JSON.stringify({
-                        type: 'registration',
+                        type: 'discussion',
                         code: 'T0006',
                         description: 'Récupération d\'une discussion existante',
                         payload: discussion
                     }));
+                    res.end();
+                }
+            });
+        } else {
+            // Sinon on se base sur la liste des membres
+            mongoose.model('Discussion').findOne({creator: creator, members: members}, function (err, discussion) {
+                if(discussion == null){
+                    if(members == 'undefined') {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'error',
+                            code: 'E0004',
+                            description: 'Une discussion doit décrire des membres'
+                        }));
+                        res.end();
+                    } else if (members.length > 9){
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'error',
+                            code: 'E0005',
+                            description: 'Trop de membres tuent les membres'
+                        }));
+                        res.end();
+                    } else {
+                        mongoose.model('Discussion').create({ creator: creator, members: members, label: label}, function (err2, discussion2) {
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.write(JSON.stringify({
+                                type: 'discussion',
+                                code: 'T0007',
+                                description: 'Création d\'une discussion',
+                                payload: discussion2
+                            }));
+                            res.end();
+
+                        });
+                    }
+                } else {
+                    // La discussion existe => on la retourne au client
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'discussion',
+                        code: 'T0006',
+                        description: 'Récupération d\'une discussion existante',
+                        payload: discussion
+                    }));
+                    res.end();
+
                 }
             });
         }
-        mongoose.model('Discussion').findOne({creator: req.session.user, label: 'label'}, function (err, user) {
-            mongoose.model('Discussion').create({ creator: user, members: 'rezr', label: 'rezr'}, function (err, discu) {
-                res.send(discu);
-            });
-        });
-        mongoose.model('User').findOne({login: 'test'}, function (err, user) {
-            mongoose.model('Discussion').create({ creator: user, members: 'rezr', label: 'rezr'}, function (err, discu) {
-                res.send(discu);
-            });
-        });
+
     }
 
 
