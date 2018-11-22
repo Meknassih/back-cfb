@@ -43,7 +43,7 @@ DiscussionSchema.statics.getDiscussion = function (conditions, cb) {
             if (err)
                 return cb(err);
 
-            console.log('found discussion ', discussion);
+            // console.log('found discussion ', discussion);
             if (discussion) {
                 discussion.creator = creator;
                 discussion.members = conditions.members ? conditions.members : [];
@@ -65,6 +65,29 @@ DiscussionSchema.statics.getDiscussion = function (conditions, cb) {
                 });
             }
         });
+    });
+}
+
+DiscussionSchema.statics.getUserInvolvedDiscussions = function (userId, cb) {
+    mongoose.model('Discussion').find({
+        $or: [
+            {creator: mongoose.Types.ObjectId(userId)},
+            {members: mongoose.Types.ObjectId(userId)}
+            ]
+        }, '-__v', function (err, discussions) {
+        if (err)
+            return cb(err);
+        // console.log('found discussions ', discussions);
+        
+        for(let i=0; i<discussions.length; i++) {
+            discussions[i] = discussions[i].toObject({minimize: false});
+            if (discussions[i].creator == userId)
+                discussions[i].status = 'creator';
+            else 
+                discussions[i].status = 'member';
+        }
+
+        return cb(null, discussions);
     });
 }
 

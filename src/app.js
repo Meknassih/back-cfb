@@ -113,7 +113,7 @@ app.post('/restapi/discussions/get-or-create', function (req, res) {
     }
     if (req.session.token === req.body.token) {
         // récupérer le label + creator depuis le body
-        console.log('session user ', req.session.user);
+        // console.log('session user ', req.session.user);
         const creatorId = req.session.user._id;
         const label = req.body.label;
         const members = req.body.members;
@@ -180,17 +180,74 @@ app.post('/restapi/discussions/get-or-create', function (req, res) {
     }
 });
 
+app.post('/restapi/discussions/list', function (req, res) {
+    if (!req.body.token || !req.session.user || !req.session.token) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0004',
+            description: 'Session expirée ou inexistante'
+        }));
+        return res.end();
+    }
+    if (req.session.token === req.body.token) {
+        // console.log('session user ', req.session.user);
+        DiscussionModel.getUserInvolvedDiscussions(req.session.user._id, function (err, discussions) {
+            if (err) {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'error',
+                    code: 'E0011',
+                    description: 'Une erreur s\'est produite lors de la récupération de discussions',
+                    payload: err
+                }));
+                return res.end();
+            }
+
+            // console.log('returning discussions ', discussions);
+            if (discussions) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'discussions',
+                    code: 'T0011',
+                    description: 'Liste de discussions auxquelles vous prenez part',
+                    payload: discussions
+                }));
+                return res.end();
+            } else {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'discussions',
+                    code: 'T0011',
+                    description: 'Liste de discussions auxquelles vous prenez part',
+                    payload: []
+                }));
+                return res.end();
+            }
+        })
+    } else {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0006',
+            description: 'Session expirée ou inexistante',
+            payload: err
+        }));
+        return res.end();
+    }
+});
+
 app.post('/login', function (req, res) {
     let filePath = path.join(_templateDir, '/identification.html');
 
     fs.readFile(filePath, { encoding: 'utf-8' }, function (err, html) {
         if (!err) {
-            console.log('request body', JSON.stringify(req.body));
+            // console.log('request body', JSON.stringify(req.body));
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.write(mustache.render(html, { 'connected': true }));
             res.end();
         } else {
-            console.log(err);
+            // console.log(err);
         }
     });
 });
@@ -216,7 +273,7 @@ app.post('/restapi/login', function (req, res) {
             }));
             return res.end();
         } else {
-            console.log('found user ', JSON.stringify(user))
+            // console.log('found user ', JSON.stringify(user))
             if (user) {
                 user.setOnline(function (err) {
                     if (err) {
@@ -289,7 +346,7 @@ app.post('/restapi/register', function (req, res) {
 });
 
 app.post('/restapi/confirmation-mail', function (req, res) {
-    console.log('encrypted ', req.body.email, '=', encrypt(req.body.email));
+    // console.log('encrypted ', req.body.email, '=', encrypt(req.body.email));
     if (req.body.login && req.body.email) {
         mongoose.model('User').findOne({ login: req.body.login, email: req.body.email }, function (err, user) {
             if (err) {
@@ -364,9 +421,9 @@ app.post('/restapi/confirmation-mail', function (req, res) {
 
 app.get('/email/confirm/*', function (req, res) {
     let urlWords = req.url.split('/');
-    console.log('words ', urlWords);
+    // console.log('words ', urlWords);
     const userEmail = decrypt(urlWords.pop());
-    console.log('userEmail :', userEmail);
+    // console.log('userEmail :', userEmail);
     mongoose.model('User').findOne({ email: userEmail, confirmed: false }, function (err, user) {
         if (err) {
             res.writeHead(300, { 'Content-Type': 'application/json' });
@@ -432,7 +489,7 @@ app.get('/restapi/logout', function (req, res) {
 });
 
 app.post('/restapi/client-heart-beat', function (req, res) {
-    console.log('Client token rcv ', req.body.token, ' stored token ', req.session.token);
+    // console.log('Client token rcv ', req.body.token, ' stored token ', req.session.token);
     if ((!req.body.token && !req.body.payload) || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -445,7 +502,7 @@ app.post('/restapi/client-heart-beat', function (req, res) {
         const clientToken = req.body.token ? req.body.token : req.body.payload.token;
         if (clientToken === req.session.token) {
             const user = new UserModel(req.session.user);
-            console.log('session user ', JSON.stringify(user));
+            // console.log('session user ', JSON.stringify(user));
             user.setOnline(function (err) {
                 if (err) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -556,9 +613,9 @@ app.post('/restapi/discussions/leave', function (req, res) {
                     return res.end();
                 }
                 if (discussion) {
-                    console.log('>>session id ', req.session.user._id, ' >> members ', discussion.members)
+                    // console.log('>>session id ', req.session.user._id, ' >> members ', discussion.members)
                     const index = discussion.members.findIndex((m) => (m == req.session.user._id));
-                    console.log('index ', index);
+                    // console.log('index ', index);
                     if (index > -1) { // Membre normal quitte la conversation
                         discussion.members.splice(index, 1);
                         DiscussionModel.updateOne({ id: discussion.id }, { members: discussion.members }, function (err, result) {
