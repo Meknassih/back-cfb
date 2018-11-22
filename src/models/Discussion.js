@@ -1,94 +1,62 @@
 const mongoose = require('mongoose');
-const { Schema } = mongoose;
+const { Schema, Types } = mongoose;
 const DiscussionSchema = new Schema({
-    creator: String,
+    creator: Types.ObjectId,
     members: [mongoose.Schema.Types.ObjectId],
     label: String,
 }, {
         timestamps: true,
     });
-const { UserModel } = require('../models/User');
+const { UserModel, UserSchema } = require('../models/User');
 
 DiscussionSchema.statics.getDiscussion = function (conditions, cb) {
-    this.findOne({ conditions }, function (err, discussion) {
+    UserModel.findById(conditions.creator, '-__v -password', function (err, creator) {
         if (err)
             return cb(err);
+        // console.log('found user ', creator);
+        if (!conditions.label)
+            delete conditions.label;
+            
+        if (conditions.members) {
+            let wholeMembers = [];
+            conditions.members.forEach(m => {
+                UserModel.findById(m, '-__v -password', function (err, wholeMember) {
+                    if (err)
+                        return cb(err);
 
-        if (discussion) {
-            UserModel.findById(discussion.creator, function (err, creator) {
-                if (err)
-                    return cb(err);
+                    wholeMembers.push(wholeMember);
+                });
+            });
+            conditions.members = wholeMembers;
+        } else
+            delete conditions.members;
+        conditions.creator = Types.ObjectId(conditions.creator);
+        mongoose.model('Discussion').findOne(conditions, '-__v', function (err, discussion) {
+            if (err)
+                return cb(err);
 
+            console.log('found discussion ',discussion);
+            if (discussion) {
                 discussion.creator = creator;
-                for (let i = 0; i < discussion.members.length; i++) {
-                    UserModel.findById(discussion.members[i], function (err, member) {
-                        if (err)
-                            return cb(err);
-
-                        discussion.members[i] = member;
-                        if (i === discussion.members.length - 1)
-                            cb(null, discussion);
-                    });
-                }
-            });
-        } else {
-            let newDiscussion = { creator: conditions.creator };
-            if (conditions.members)
-                newDiscussion.members = conditions.members;
-            else
-                newDiscussion.members = [];
-            if (conditions.label)
-                newDiscussion.label = conditions.label;
-
-            this.create(newDiscussion, function (err, discussion) {
-                if (err)
-                    return cb(err);
-                    
-                cb(null, discussion);
-            });
-        }
-        cb(null, discussion);
-        /* if (!discussion) {
-            if (members == undefined) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
-                    type: 'error',
-                    code: 'E0004',
-                    description: 'Une discussion doit décrire des membres'
-                }));
-                res.end();
-            } else if (Array.isArray(members) && members.length > 9) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
-                    type: 'error',
-                    code: 'E0005',
-                    description: 'Trop de membres tuent les membres'
-                }));
-                res.end();
+                discussion.members = conditions.members ? conditions.members : [];
+                // console.log('Returning exist ', discussion);
+                cb(null, discussion, false);
             } else {
-                mongoose.model('Discussion').create({ creator: creator, members: members, label: label }, function (err2, discussion2) {
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
-                        type: 'discussion',
-                        code: 'T0007',
-                        description: 'Création d\'une discussion',
-                        payload: discussion2
-                    }));
-                    res.end();
+                let newDiscussion = { creator: creator.id }; // Put only creator ID to register into db
+                newDiscussion.members = conditions.members ? conditions.members : [];
+                if (conditions.label)
+                    newDiscussion.label = conditions.label;
 
+                mongoose.model('Discussion').create(newDiscussion, function (err, createdDiscussion) {
+                    if (err)
+                        return cb(err);
+
+                    createdDiscussion.__v = undefined; createdDiscussion.creator = creator; // Readd creator whole object
+                    // console.log('returning new ', createdDiscussion);
+                    cb(null, discussion, true);
                 });
             }
-        } else {
-            // La discussion existe => on la retourne au client
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.write(JSON.stringify({
-                type: 'discussion',
-                code: 'T0006',
-                description: 'Récupération d\'une discussion existante',
-                payload: discussion
-            }));
-            res.end();
-        } */
+        });
     });
 }
 

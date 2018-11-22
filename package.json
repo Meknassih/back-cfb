@@ -4,7 +4,7 @@
   "description": "Back-end for messaging app",
   "main": "src/app.js",
   "scripts": {
-    "serve": "node src/app.js | mongod --dbpath=data > log/logs.txt",
+    "serve": "./run.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

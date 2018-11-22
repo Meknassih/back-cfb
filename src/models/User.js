@@ -66,8 +66,11 @@ UserSchema.statics.login = function (username, plainPassword, cb) {
     return this.findOne({ login: username, password: plainPassword }, cb);
 }
 
-UserSchema.statics.getByUsername = function (username, cb) {
-    return this.findOne({ login: username}, cb);
+UserSchema.statics.getByUsername = function (username, withSecrets, cb) {
+    if (withSecrets)
+        return mongoose.model('User').findOne({ login: username}, cb);
+    else
+        return mongoose.model('User').findOne({ login: username}, '-password -__v',cb);
 }
 
 UserSchema.statics.register = function (username, plainPassword, email, cb) {
@@ -101,7 +104,7 @@ UserSchema.statics.register = function (username, plainPassword, email, cb) {
 }
 
 UserSchema.statics.getAll = function (strategy = undefined, cb) {
-    mongoose.model('User').find({}, '-password -_id -__v', function (err, users) {
+    mongoose.model('User').find({}, '-password -__v', function (err, users) {
         if (err)
             return cb(err);
 

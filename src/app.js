@@ -104,18 +104,19 @@ app.get('/dashboard', function (req, res) {
 app.post('/restapi/discussions/get-or-create', function (req, res) {
     if (req.session.user) {
         // récupérer le label + creator depuis le body
-        const creator = req.session.user.login;
+        console.log('session user ', req.session.user);
+        const creatorId = req.session.user._id;
         const label = req.body.label;
         const members = req.body.members;
         let conditions;
 
         if (label) // Si le label est fourni
-            conditions = { creator: creator, label: label };
+            conditions = { creator: creatorId, label: label };
         else // Sinon on se base sur la liste des membres
-            conditions = { creator: creator, members: members };
+            conditions = { creator: creatorId, members: members };
 
         //TODO: implémenter _message.MessageModel.getLastMessages() et les ajouter à la discussion
-        _discussion.DiscussionModel.getDiscussion(conditions, function (err, discussion) {
+        _discussion.DiscussionModel.getDiscussion(conditions, function (err, discussion, justCreated) {
             if (err) {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
                 res.write(JSON.stringify({
@@ -137,7 +138,7 @@ app.post('/restapi/discussions/get-or-create', function (req, res) {
                         payload: {totalMembers: discussion.members.length}
                     }));
                     return res.end();
-                } else if ((new Date().valueOf() - discussion.createdAt.valueOf()) > 5000) {
+                } else if (!justCreated) {
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.write(JSON.stringify({
                         type: 'discussion',
@@ -169,10 +170,6 @@ app.post('/restapi/discussions/get-or-create', function (req, res) {
         return res.end();
     }
 });
-
-
-
-
 
 app.post('/login', function (req, res) {
     let filePath = path.join(_templateDir, '/identification.html');
