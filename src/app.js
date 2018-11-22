@@ -25,8 +25,8 @@ app.use(express.static(__dirname + '/statics'));
 //Configure Mongoose
 mongoose.connect('mongodb://localhost/data', { useNewUrlParser: true });
 mongoose.set('debug', true);
-const _user = require('./models/User');
-const _discussion = require('./models/Discussion');
+const { UserModel } = require('./models/User');
+const { DiscussionModel } = require('./models/Discussion');
 
 app.get('/', function (req, res) {
 
@@ -102,7 +102,16 @@ app.get('/dashboard', function (req, res) {
 });
 
 app.post('/restapi/discussions/get-or-create', function (req, res) {
-    if (req.session.user) {
+    if (!req.body.token || !req.session.user || !req.session.token) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0004',
+            description: 'Session expirée ou inexistante'
+        }));
+        return res.end();
+    }
+    if (req.session.token === req.body.token) {
         // récupérer le label + creator depuis le body
         console.log('session user ', req.session.user);
         const creatorId = req.session.user._id;
@@ -116,7 +125,7 @@ app.post('/restapi/discussions/get-or-create', function (req, res) {
             conditions = { creator: creatorId, members: members };
 
         //TODO: implémenter _message.MessageModel.getLastMessages() et les ajouter à la discussion
-        _discussion.DiscussionModel.getDiscussion(conditions, function (err, discussion, justCreated) {
+        DiscussionModel.getOrCreateDiscussion(conditions, function (err, discussion, justCreated) {
             if (err) {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
                 res.write(JSON.stringify({
@@ -135,7 +144,7 @@ app.post('/restapi/discussions/get-or-create', function (req, res) {
                         type: 'error',
                         code: 'E0005',
                         description: 'Trop de membres tuent les membres',
-                        payload: {totalMembers: discussion.members.length}
+                        payload: { totalMembers: discussion.members.length }
                     }));
                     return res.end();
                 } else if (!justCreated) {
@@ -435,7 +444,7 @@ app.post('/restapi/client-heart-beat', function (req, res) {
     } else {
         const clientToken = req.body.token ? req.body.token : req.body.payload.token;
         if (clientToken === req.session.token) {
-            const user = new _user.UserModel(req.session.user);
+            const user = new UserModel(req.session.user);
             console.log('session user ', JSON.stringify(user));
             user.setOnline(function (err) {
                 if (err) {
@@ -470,7 +479,7 @@ app.post('/restapi/client-heart-beat', function (req, res) {
     }
 });
 
-app.post('/restapi/get-all', function (req, res) {
+app.post('/restapi/members/get-all', function (req, res) {
     if (!req.body.token || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -499,6 +508,127 @@ app.post('/restapi/get-all', function (req, res) {
                         code: 'T0004',
                         description: 'Liste des utilisateurs inscrits',
                         payload: users
+                    }));
+                    return res.end();
+                }
+            });
+        } else {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({
+                type: 'error',
+                code: 'E0004',
+                description: 'Session expirée ou inexistante'
+            }));
+            res.end();
+        }
+    }
+});
+
+app.post('/restapi/discussions/leave', function (req, res) {
+    if (!req.body.token || !req.session.user || !req.session.token) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0004',
+            description: 'Session expirée ou inexistante'
+        }));
+        return res.end();
+    } else if (!req.body.discussionId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0008',
+            description: 'Identifiant de la discussion manquant'
+        }));
+        return res.end();
+    } else {
+        if (req.body.token === req.session.token) {
+            DiscussionModel.findById(mongoose.Types.ObjectId(req.body.discussionId), function (err, discussion) {
+                //console.log('getAll user ', JSON.stringify(users));
+                if (err) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'error',
+                        code: 'E0008',
+                        description: 'Une erreur interne s\'est produite',
+                        payload: err
+                    }));
+                    return res.end();
+                }
+                if (discussion) {
+                    console.log('>>session id ', req.session.user._id, ' >> members ', discussion.members)
+                    const index = discussion.members.findIndex((m) => (m == req.session.user._id));
+                    console.log('index ', index);
+                    if (index > -1) { // Membre normal quitte la conversation
+                        discussion.members.splice(index, 1);
+                        DiscussionModel.updateOne({ id: discussion.id }, { members: discussion.members }, function (err, result) {
+                            if (err) {
+                                res.writeHead(400, { 'Content-Type': 'application/json' });
+                                res.write(JSON.stringify({
+                                    type: 'error',
+                                    code: 'E0008',
+                                    description: 'Une erreur interne s\'est produite',
+                                    payload: err
+                                }));
+                                return res.end();
+                            }
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.write(JSON.stringify({
+                                type: 'discussion',
+                                code: 'T0010',
+                                description: 'Vous avez quitté la conversation',
+                                payload: discussion
+                            }));
+                            return res.end();
+                        });
+                    } else if (req.session.user._id === discussion.creator.toString()) {
+                        // Membre créateur quitte la conversation
+                        if (!req.body.force) {
+                            res.writeHead(400, { 'Content-Type': 'application/json' });
+                            res.write(JSON.stringify({
+                                type: 'error',
+                                code: 'E0007',
+                                description: 'Pour quitter une conversation dont vous êtes créateur, il faut forcer sa suppresion',
+                                payload: discussion
+                            }));
+                            return res.end();
+                        }
+                        // TODO:
+                        DiscussionModel.deleteById(discussion.id, function (err) {
+                            if (err) {
+                                res.writeHead(400, { 'Content-Type': 'application/json' });
+                                res.write(JSON.stringify({
+                                    type: 'error',
+                                    code: 'E0008',
+                                    description: 'Une erreur interne s\'est produite',
+                                    payload: err
+                                }));
+                                return res.end();
+                            }
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.write(JSON.stringify({
+                                type: 'discussion',
+                                code: 'T0009',
+                                description: 'La discussion a été supprimée, ainsi que son historique'
+                            }));
+                            return res.end();
+                        });
+
+                    } else {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'error',
+                            code: 'E0008',
+                            description: 'Vous ne pouvez pas quitter cette conversation car vous n\'en faites pas partie'
+                        }));
+                        return res.end();
+                    }
+                } else {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'error',
+                        code: 'E0008',
+                        description: 'Conversation inexistante'
                     }));
                     return res.end();
                 }

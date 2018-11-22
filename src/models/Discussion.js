@@ -9,6 +9,14 @@ const DiscussionSchema = new Schema({
     });
 const { UserModel, UserSchema } = require('../models/User');
 
+DiscussionSchema.statics.deleteById = function (discussionId, cb) {
+    this.deleteOne({ _id: discussionId }, function (err) {
+        if (err)
+            return cb(err);
+    });
+    cb(null);
+};
+
 DiscussionSchema.statics.getDiscussion = function (conditions, cb) {
     UserModel.findById(conditions.creator, '-__v -password', function (err, creator) {
         if (err)
@@ -16,7 +24,7 @@ DiscussionSchema.statics.getDiscussion = function (conditions, cb) {
         // console.log('found user ', creator);
         if (!conditions.label)
             delete conditions.label;
-            
+
         if (conditions.members) {
             let wholeMembers = [];
             conditions.members.forEach(m => {
@@ -35,7 +43,7 @@ DiscussionSchema.statics.getDiscussion = function (conditions, cb) {
             if (err)
                 return cb(err);
 
-            console.log('found discussion ',discussion);
+            console.log('found discussion ', discussion);
             if (discussion) {
                 discussion.creator = creator;
                 discussion.members = conditions.members ? conditions.members : [];
