@@ -611,7 +611,52 @@ app.post('/restapi/discussions/add-member', function (req, res) {
                     }));
                     return res.end();
                 }
-                console.log(discussion.label);
+                if(discussion){
+                    // vérifier si l'utilsiateur émettant la requête est bien le créateur de la discussion
+                    if(discussion.creator == req.session.user._id){
+                        let newMembersLength = req.body.newMembers.length;
+                        let discussionMembersLength = discussion.members.length;
+                        console.log(newMembersLength);
+                        console.log(discussionMembersLength);
+                        // Si l'ajout des nouveaux utilisateurs entraine le dépassement du seuil des 9 Membres
+                        if(discussionMembersLength+newMembersLength > 9){
+                            res.writeHead(400, { 'Content-Type': 'application/json' });
+                            res.write(JSON.stringify({
+                                type: 'error',
+                                code: 'E0005',
+                                description: 'Trop de members tuent les membres'
+                            }));
+                            return res.end();
+                        } else {
+                            console.log('test');
+                            // fusionner les tableaux de membres à ajouter avec celui des membres existants
+                            let newDisccusionMembers = req.body.newMembers.concat(discussion.members);
+                            console.log(discussion.id);
+                            discussion.members = newDisccusionMembers;
+                            console.log(discussion.members)
+                            discussion.save(function (err, result) {
+                                res.writeHead(200, { 'Content-Type': 'application/json' });
+                                res.write(JSON.stringify({
+                                    type: 'discussion',
+                                    code: 'T0010',
+                                    description: 'Vous avez quitté la conversation',
+                                    payload: discussion.members
+                                }));
+                                return res.end();
+                            });
+                        }
+                    } else {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.write(JSON.stringify({
+                            type: 'error',
+                            code: 'E0006',
+                            description: 'Vous n\'avez pas le droit d\'effectuer cette manipulation pour cette discussion'
+                        }));
+                        return res.end();
+                    }
+
+
+                }
 
             });
         } else {
