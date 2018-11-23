@@ -581,6 +581,25 @@ app.post('/restapi/members/get-all', function (req, res) {
     }
 });
 
+function merge_array(array1, array2) {
+    var result_array = [];
+    var arr = array1.concat(array2);
+    var len = arr.length;
+    var assoc = {};
+
+    while(len--) {
+        var item = arr[len];
+
+        if(!assoc[item])
+        {
+            result_array.unshift(item);
+            assoc[item] = true;
+        }
+    }
+
+    return result_array;
+}
+
 app.post('/restapi/discussions/add-member', function (req, res) {
     if (!req.body.token || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -590,12 +609,12 @@ app.post('/restapi/discussions/add-member', function (req, res) {
             description: 'Session expirée ou inexistante'
         }));
         return res.end();
-    } else if (!req.body.discussionId) {
+    } else if (!req.body.discussionId || !req.body.newMembers) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
             type: 'error',
             code: 'E0008',
-            description: 'Identifiant de la discussion manquant'
+            description: 'Identifiant de la discussion et/ou liste des membres à ajouter inexistante'
         }));
         return res.end();
     } else {
@@ -605,21 +624,21 @@ app.post('/restapi/discussions/add-member', function (req, res) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
                     res.write(JSON.stringify({
                         type: 'error',
-                        code: 'E0008',
                         description: 'Une erreur interne s\'est produite',
-                        payload: err
                     }));
                     return res.end();
                 }
                 if(discussion){
-                    // vérifier si l'utilsiateur émettant la requête est bien le créateur de la discussion
+                    // Vérifier si l'utilsiateur émettant la requête est bien le créateur de la discussion
                     if(discussion.creator == req.session.user._id){
-                        let newMembersLength = req.body.newMembers.length;
-                        let discussionMembersLength = discussion.members.length;
-                        console.log(newMembersLength);
-                        console.log(discussionMembersLength);
-                        // Si l'ajout des nouveaux utilisateurs entraine le dépassement du seuil des 9 Membres
-                        if(discussionMembersLength+newMembersLength > 9){
+                        /* Fusionner le tableaux des membres à ajouter avec celui des membres existants
+                            en supprimant tout les membres en double*/
+                        let newDisccusionMembers = merge_array(req.body.newMembers, discussion.members);
+                        console.log(req.body.newMembers);
+                        console.log(discussion.members);
+                        console.log(newDisccusionMembers);
+                        // Vérifier si l'ajout des nouveaux utilisateurs entraine le dépassement du seuil des 9 Membres
+                        if(newDisccusionMembers.length > 9){
                             res.writeHead(400, { 'Content-Type': 'application/json' });
                             res.write(JSON.stringify({
                                 type: 'error',
@@ -628,18 +647,13 @@ app.post('/restapi/discussions/add-member', function (req, res) {
                             }));
                             return res.end();
                         } else {
-                            console.log('test');
-                            // fusionner les tableaux de membres à ajouter avec celui des membres existants
-                            let newDisccusionMembers = req.body.newMembers.concat(discussion.members);
-                            console.log(discussion.id);
                             discussion.members = newDisccusionMembers;
-                            console.log(discussion.members)
                             discussion.save(function (err, result) {
                                 res.writeHead(200, { 'Content-Type': 'application/json' });
                                 res.write(JSON.stringify({
                                     type: 'discussion',
-                                    code: 'T0010',
-                                    description: 'Vous avez quitté la conversation',
+                                    code: 'T0008',
+                                    description: 'Membre(s) ajouté(s) avec succès',
                                     payload: discussion.members
                                 }));
                                 return res.end();
@@ -654,8 +668,6 @@ app.post('/restapi/discussions/add-member', function (req, res) {
                         }));
                         return res.end();
                     }
-
-
                 }
 
             });
