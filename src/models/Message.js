@@ -3,20 +3,45 @@ const { Schema } = mongoose;
 const MessageSchema = new Schema({
     author: Schema.Types.ObjectId,
     message: String,
-    discussion: {type: Schema.Types.ObjectId, ref: 'DiscussionModel'}
+    discussion: { type: Schema.Types.ObjectId, ref: 'DiscussionModel' }
 }, {
         timestamps: true,
     }
 );
-const { UserModel, UserSchema } = require('./User');
+const { DiscussionSchema, DiscussionModel } = require('./Discussion');
 
 //TODO: TEC12
-MessageSchema.statics.getMessages = function (discussionId, options, cb) {
-    
-};
+MessageSchema.statics.getMessagesInDiscussion = function (discussionId, userId, cb, options) {
+    if (!options)
+        options = {count:30, offset:0};
+    if (!options.count)
+        options.count = 30;
+    if (!options.offset)
+        options.offset = 0;
+    DiscussionModel.findById(mongoose.Types.ObjectId(discussionId), function (err, discussion) {
+        if (err)
+            return cb(err);
 
-MessageSchema.statics.getMessages = function (discussionId, cb) {
-    MessageSchema.getMessages(discussionId, {count: 30, offset:0}, cb);
+        if (discussion) {
+            if (discussion.members.findIndex(m => (m.toString() == userId))<0
+            && discussion.creator.toString() != userId)
+                return cb('notAllowed');
+
+            mongoose.model('Message').find({discussion: discussion._id}, '-__v', {limit: options.count, skip: options.offset} ,function(err, messages) {
+                if (err)
+                    return cb(err);
+
+                for (let i=0; i<messages.length; i++) {
+                    messages[i] = messages[i].toObject();
+                    messages[i].dateTime = messages[i].createdAt;
+                    messages[i].id = messages[i]._id;
+                }
+                return cb(null, messages, discussion);
+            });
+        } else {
+            return cb('notFound');
+        }
+    });
 };
 //TODO: TEC13
 

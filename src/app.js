@@ -27,6 +27,7 @@ mongoose.connect('mongodb://localhost/data', { useNewUrlParser: true });
 mongoose.set('debug', true);
 const { UserModel } = require('./models/User');
 const { DiscussionModel } = require('./models/Discussion');
+const { MessageModel } = require('./models/Message');
 
 app.get('/', function (req, res) {
 
@@ -237,6 +238,72 @@ app.post('/restapi/discussions/list', function (req, res) {
     }
 });
 
+app.post('/restapi/discussions/get-messages', function(req, res) {
+    if (!req.body.token || !req.session.user || !req.session.token) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0004',
+            description: 'Session expirée ou inexistante'
+        }));
+        return res.end();
+    } else if (!req.body.discussionId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E1009',
+            description: 'Identifiant de discussion manquant'
+        }));
+        return res.end();
+    }
+
+    MessageModel.getMessagesInDiscussion(req.body.discussionId, req.session.user._id, function(err, messages, discussion) {
+        if (err) {
+            if (err == 'notAllowed') {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'error',
+                    code: 'E0009',
+                    description: 'Vous ne pouvez pas réaliser cette opération car vous n\'avez pas accès à cette conversation',
+                }));
+                return res.end();
+            } else if (err == 'notFound') {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'error',
+                    code: 'E0009',
+                    description: 'Vous ne pouvez pas réaliser cette opération car la discussion n\'existe pas',
+                }));
+                return res.end();
+            } else {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'error',
+                    code: 'E0009',
+                    description: 'Une erreur s\'est produite lors de la récupération des messages',
+                    payload: err
+                }));
+                return res.end();
+            }
+        }
+
+        if (messages) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'discussion',
+                    code: 'T0013',
+                    description: 'Récupération des messages de la discussion',
+                    payload: {
+                        id: discussion.id,
+                        label: discussion.label,
+                        lastMessages: messages
+                    }
+                }));
+                return res.end();
+        }
+    }, req.body.options);  
+});
+
 app.post('/login', function (req, res) {
     let filePath = path.join(_templateDir, '/identification.html');
 
@@ -288,7 +355,7 @@ app.post('/restapi/login', function (req, res) {
                     } else {
                         req.session.user = user;
                         req.session.token = encrypt(user.login + new Date().valueOf() + user.email)
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
                         res.write(JSON.stringify({
                             type: 'authentication',
                             code: 'T0001',
