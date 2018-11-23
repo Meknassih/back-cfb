@@ -17,7 +17,7 @@ DiscussionSchema.statics.deleteById = function (discussionId, cb) {
     cb(null);
 };
 
-DiscussionSchema.statics.getDiscussion = function (conditions, cb) {
+DiscussionSchema.statics.getOrCreateDiscussion = function (conditions, cb) {
     UserModel.findById(conditions.creator, '-__v -password', function (err, creator) {
         if (err)
             return cb(err);

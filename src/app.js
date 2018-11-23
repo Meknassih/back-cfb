@@ -601,7 +601,6 @@ app.post('/restapi/discussions/add-member', function (req, res) {
     } else {
         if (req.body.token === req.session.token) {
             DiscussionModel.findById(mongoose.Types.ObjectId(req.body.discussionId), function (err, discussion) {
-                //console.log('getAll user ', JSON.stringify(users));
                 if (err) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
                     res.write(JSON.stringify({
@@ -612,6 +611,7 @@ app.post('/restapi/discussions/add-member', function (req, res) {
                     }));
                     return res.end();
                 }
+                console.log(discussion.label);
 
             });
         } else {
