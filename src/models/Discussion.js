@@ -1,13 +1,13 @@
 const mongoose = require('mongoose');
 const { Schema, Types } = mongoose;
+const { UserModel, UserSchema } = require('../models/User');
 const DiscussionSchema = new Schema({
     creator: Types.ObjectId,
-    members: [Types.ObjectId],
+    members: [{type: Schema.Types.ObjectId, ref: 'UserModel'}],
     label: String,
 }, {
         timestamps: true,
     });
-const { UserModel, UserSchema } = require('../models/User');
 
 DiscussionSchema.statics.deleteById = function (discussionId, cb) {
     this.deleteOne({ _id: discussionId }, function (err) {
