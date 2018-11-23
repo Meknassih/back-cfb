@@ -618,7 +618,7 @@ app.post('/restapi/discussions/leave', function (req, res) {
                     // console.log('index ', index);
                     if (index > -1) { // Membre normal quitte la conversation
                         discussion.members.splice(index, 1);
-                        DiscussionModel.updateOne({ id: discussion.id }, { members: discussion.members }, function (err, result) {
+                        discussion.save(function (err, updatedDisc) {
                             if (err) {
                                 res.writeHead(400, { 'Content-Type': 'application/json' });
                                 res.write(JSON.stringify({
@@ -634,7 +634,7 @@ app.post('/restapi/discussions/leave', function (req, res) {
                                 type: 'discussion',
                                 code: 'T0010',
                                 description: 'Vous avez quitté la conversation',
-                                payload: discussion
+                                payload: updatedDisc
                             }));
                             return res.end();
                         });

@@ -17,7 +17,7 @@ DiscussionSchema.statics.deleteById = function (discussionId, cb) {
     cb(null);
 };
 
-DiscussionSchema.statics.getDiscussion = function (conditions, cb) {
+DiscussionSchema.statics.getOrCreateDiscussion = function (conditions, cb) {
     UserModel.findById(conditions.creator, '-__v -password', function (err, creator) {
         if (err)
             return cb(err);
@@ -81,6 +81,10 @@ DiscussionSchema.statics.getUserInvolvedDiscussions = function (userId, cb) {
         
         for(let i=0; i<discussions.length; i++) {
             discussions[i] = discussions[i].toObject({minimize: false});
+            discussions[i].id = discussions[i]._id;
+            discussions[i].description = discussions[i].label;
+            discussions[i].label = discussions[i].label;
+            discussions[i].name = discussions[i].label;
             if (discussions[i].creator == userId)
                 discussions[i].status = 'creator';
             else 

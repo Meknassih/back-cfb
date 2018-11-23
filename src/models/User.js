@@ -108,14 +108,14 @@ UserSchema.statics.getAll = function (strategy = undefined, cb) {
         if (err)
             return cb(err);
 
-        console.log('users retrieved : ', JSON.stringify(users));
+        // console.log('users retrieved : ', JSON.stringify(users));
         
         switch (strategy) {
             case 'lastSeen':
             users = users.sort((ua, ub) => (+ub.lastSeen||0 < ua.lastSeen||0));
             break;
             default:
-            users = users.sort((ua, ub) => (ub.login.charAt(0) < ua.login.charAt(0)));
+            users = users.sort((ua, ub) => (ub.login < ua.login));
             break;
         }
         console.log('users sorted : ', JSON.stringify(users));
