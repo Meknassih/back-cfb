@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const { Schema, Types } = mongoose;
 const DiscussionSchema = new Schema({
     creator: Types.ObjectId,
-    members: [mongoose.Schema.Types.ObjectId],
+    members: [Types.ObjectId],
     label: String,
 }, {
         timestamps: true,
