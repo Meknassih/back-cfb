@@ -581,6 +581,51 @@ app.post('/restapi/members/get-all', function (req, res) {
     }
 });
 
+app.post('/restapi/discussions/add-member', function (req, res) {
+    if (!req.body.token || !req.session.user || !req.session.token) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0004',
+            description: 'Session expirée ou inexistante'
+        }));
+        return res.end();
+    } else if (!req.body.discussionId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0008',
+            description: 'Identifiant de la discussion manquant'
+        }));
+        return res.end();
+    } else {
+        if (req.body.token === req.session.token) {
+            DiscussionModel.findById(mongoose.Types.ObjectId(req.body.discussionId), function (err, discussion) {
+                //console.log('getAll user ', JSON.stringify(users));
+                if (err) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'error',
+                        code: 'E0008',
+                        description: 'Une erreur interne s\'est produite',
+                        payload: err
+                    }));
+                    return res.end();
+                }
+
+            });
+        } else {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({
+                type: 'error',
+                code: 'E0004',
+                description: 'Session expirée ou inexistante'
+            }));
+            res.end();
+        }
+    }
+});
+
 app.post('/restapi/discussions/leave', function (req, res) {
     if (!req.body.token || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
