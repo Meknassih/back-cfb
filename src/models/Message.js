@@ -45,5 +45,25 @@ MessageSchema.statics.getMessagesInDiscussion = function (discussionId, userId, 
 };
 //TODO: TEC13
 
+MessageSchema.statics.register = function (author, message, discution) {
+    if (author) {
+        return this.findOne({ author: username }, (err, existingUser) => {
+            if (err)
+                return cb(err);
+                  mongoose.model('Message').create({ author: username, message: message, discution: discution}, function (err, user) {
+                      if (err) {
+                          cb(err);
+                      } else {
+                          cb(null, user);
+                      }
+                  });
+                    }
+                });
+            }
+        });
+}
+
+
+
 const MessageModel = mongoose.model('Message', MessageSchema);
 module.exports = { MessageModel, MessageSchema };
