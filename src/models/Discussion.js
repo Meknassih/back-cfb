@@ -1,13 +1,13 @@
 const mongoose = require('mongoose');
 const { Schema, Types } = mongoose;
+const { UserModel, UserSchema } = require('../models/User');
 const DiscussionSchema = new Schema({
     creator: Types.ObjectId,
-    members: [mongoose.Schema.Types.ObjectId],
+    members: [{type: Schema.Types.ObjectId, ref: 'UserModel'}],
     label: String,
 }, {
         timestamps: true,
     });
-const { UserModel, UserSchema } = require('../models/User');
 
 DiscussionSchema.statics.deleteById = function (discussionId, cb) {
     this.deleteOne({ _id: discussionId }, function (err) {
@@ -81,6 +81,10 @@ DiscussionSchema.statics.getUserInvolvedDiscussions = function (userId, cb) {
         
         for(let i=0; i<discussions.length; i++) {
             discussions[i] = discussions[i].toObject({minimize: false});
+            discussions[i].id = discussions[i]._id;
+            discussions[i].description = discussions[i].label;
+            discussions[i].label = discussions[i].label;
+            discussions[i].name = discussions[i].label;
             if (discussions[i].creator == userId)
                 discussions[i].status = 'creator';
             else 
