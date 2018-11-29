@@ -39,3 +39,8 @@ Start the server with :
 ```
 npm run serve
 ```
+
+## Note
+
+JWT secret key to decrypt the signature is by default the string `toto`.
+You can change at line 17 in src/app.js.

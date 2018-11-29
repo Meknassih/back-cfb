@@ -130,42 +130,46 @@ app.post('/restapi/discussions/get-or-create', function (req, res) {
         DiscussionModel.getOrCreateDiscussion(conditions, function (err, discussion, justCreated) {
             if (err) {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
+                payload = jwt.sign({
                     type: 'error',
                     code: 'E0006',
                     description: 'Une erreur s\'est produite lors de la récupération de discussions',
                     payload: err
-                }));
+                }, secretKey);
+                res.write(JSON.stringify({ jwt: payload }));
                 return res.end();
             }
 
             if (discussion) {
                 if (discussion.members.length > 9) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'error',
                         code: 'E0005',
                         description: 'Trop de membres tuent les membres',
                         payload: { totalMembers: discussion.members.length }
-                    }));
+                    }, secretKey);
+                    res.write(JSON.stringify({ jwt: payload }));
                     return res.end();
                 } else if (!justCreated) {
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'discussion',
                         code: 'T0006',
                         description: 'Récupération d\'une discussion existante',
                         payload: discussion
-                    }));
+                    }, secretKey);
+                    res.write(JSON.stringify({ jwt: payload }));
                     return res.end();
                 } else {
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'discussion',
                         code: 'T0007',
                         description: 'Création d\'une discussion',
                         payload: discussion
-                    }));
+                    }, secretKey);
+                    res.write(JSON.stringify({ jwt: payload }));
                     return res.end();
                 }
             }
@@ -197,33 +201,36 @@ app.post('/restapi/discussions/list', function (req, res) {
         DiscussionModel.getUserInvolvedDiscussions(req.session.user._id, function (err, discussions) {
             if (err) {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
+                payload = jwt.sign({
                     type: 'error',
                     code: 'E0011',
                     description: 'Une erreur s\'est produite lors de la récupération de discussions',
                     payload: err
-                }));
+                }, secretKey);
+                res.write(JSON.stringify({ jwt: payload }));
                 return res.end();
             }
 
             // console.log('returning discussions ', discussions);
             if (discussions) {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
+                payload = jwt.sign({
                     type: 'discussions',
                     code: 'T0011',
                     description: 'Liste de discussions auxquelles vous prenez part',
                     payload: discussions
-                }));
+                }, secretKey);
+                res.write(JSON.stringify({ jwt: payload }));
                 return res.end();
             } else {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
+                payload = jwt.sign({
                     type: 'discussions',
                     code: 'T0011',
                     description: 'Liste de discussions auxquelles vous prenez part',
                     payload: []
-                }));
+                }, secretKey);
+                res.write(JSON.stringify({ jwt: payload }));
                 return res.end();
             }
         })
@@ -250,11 +257,12 @@ app.post('/restapi/discussions/get-messages', function (req, res) {
         return res.end();
     } else if (!req.body.discussionId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.write(JSON.stringify({
+        payload = jwt.sign({
             type: 'error',
             code: 'E1009',
             description: 'Identifiant de discussion manquant'
-        }));
+        }, secretKey);
+        res.write(JSON.stringify({ jwt: payload }));
         return res.end();
     }
 
@@ -262,35 +270,38 @@ app.post('/restapi/discussions/get-messages', function (req, res) {
         if (err) {
             if (err == 'notAllowed') {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
+                payload = jwt.sign({
                     type: 'error',
                     code: 'E0009',
-                    description: 'Vous ne pouvez pas réaliser cette opération car vous n\'avez pas accès à cette conversation',
-                }));
+                    description: 'Vous ne pouvez pas réaliser cette opération car vous n\'avez pas accès à cette conversation'
+                }, secretKey);
+                res.write(JSON.stringify({ jwt: payload }));
                 return res.end();
             } else if (err == 'notFound') {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
+                payload = jwt.sign({
                     type: 'error',
                     code: 'E0009',
-                    description: 'Vous ne pouvez pas réaliser cette opération car la discussion n\'existe pas',
-                }));
+                    description: 'Vous ne pouvez pas réaliser cette opération car la discussion n\'existe pas'
+                }, secretKey);
+                res.write(JSON.stringify({ jwt: payload }));
                 return res.end();
             } else {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
+                payload = jwt.sign({
                     type: 'error',
                     code: 'E0009',
                     description: 'Une erreur s\'est produite lors de la récupération des messages',
                     payload: err
-                }));
+                }, secretKey);
+                res.write(JSON.stringify({ jwt: payload }));
                 return res.end();
             }
         }
 
         if (messages) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.write(JSON.stringify({
+            payload = jwt.sign({
                 type: 'discussion',
                 code: 'T0013',
                 description: 'Récupération des messages de la discussion',
@@ -299,7 +310,8 @@ app.post('/restapi/discussions/get-messages', function (req, res) {
                     label: discussion.label,
                     lastMessages: messages
                 }
-            }));
+            }, secretKey);
+            res.write(JSON.stringify({ jwt: payload }));
             return res.end();
         }
     }, req.body.options);
@@ -316,11 +328,12 @@ app.post('/restapi/discussions/post-message', function (req, res) {
         return res.end();
     } else if (!req.body.discussionId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.write(JSON.stringify({
+        payload = jwt.sign({
             type: 'error',
             code: 'E1009',
             description: 'Identifiant de discussion manquant'
-        }));
+        }, secretKey);
+        res.write(JSON.stringify({ jwt: payload }));
         return res.end();
     }
 
@@ -328,39 +341,43 @@ app.post('/restapi/discussions/post-message', function (req, res) {
         if (err) {
             if (err == 'notAllowed') {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
+                payload = jwt.sign({
                     type: 'error',
                     code: 'E0009',
-                    description: 'Vous ne pouvez pas réaliser cette opération car vous n\'avez pas accès à cette conversation',
-                }));
+                    description: 'Vous ne pouvez pas réaliser cette opération car vous n\'avez pas accès à cette conversation'
+                }, secretKey);
+                res.write(JSON.stringify({ jwt: payload }));
                 return res.end();
             } else if (err == 'notFound') {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
+                payload = jwt.sign({
                     type: 'error',
                     code: 'E0009',
-                    description: 'Vous ne pouvez pas réaliser cette opération car la discussion n\'existe pas',
-                }));
+                    description: 'Vous ne pouvez pas réaliser cette opération car la discussion n\'existe pas'
+                }, secretKey);
+                res.write(JSON.stringify({ jwt: payload }));
                 return res.end();
             } else {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
+                payload = jwt.sign({
                     type: 'error',
                     code: 'E0009',
-                    description: 'Une erreur s\'est produite lors de l\'envoie des messages',
+                    description: 'Une erreur s\'est produite lors de l\'envoi des messages',
                     payload: err
-                }));
+                }, secretKey);
+                res.write(JSON.stringify({ jwt: payload }));
                 return res.end();
             }
         }
 
         if (message) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.write(JSON.stringify({
+            payload = jwt.sign({
                 type: 'discussion',
                 code: 'T0012',
                 description: 'Message enregistré avec succès'
-            }));
+            }, secretKey);
+            res.write(JSON.stringify({ jwt: payload }));
             return res.end();
         }
     }, req.body.options);
@@ -642,12 +659,13 @@ app.post('/restapi/client-heart-beat', function (req, res) {
             user.setOnline(function (err) {
                 if (err) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'error',
                         code: 'E0003',
                         description: 'Bail non renouvelable',
                         payload: err
-                    }));
+                    }, secretKey);
+                    res.write(JSON.stringify({ jwt: payload }));
                     return res.end();
                 } else {
                     req.session.user = user;
@@ -663,11 +681,12 @@ app.post('/restapi/client-heart-beat', function (req, res) {
             });
         } else {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.write(JSON.stringify({
+            payload = jwt.sign({
                 type: 'error',
                 code: 'E0003',
                 description: 'Bail non renouvelable'
-            }));
+            }, secretKey);
+            res.write(JSON.stringify({ jwt: payload }));
             res.end();
         }
     }
@@ -722,6 +741,8 @@ app.post('/restapi/members/get-all', function (req, res) {
 });
 
 app.post('/apirest/get-onlines', function (req, res) {
+    let payload = jwt.verify(req.body.jwt, secretKey);
+    req.body.token = payload.token;
     if (!req.body.token || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -736,21 +757,23 @@ app.post('/apirest/get-onlines', function (req, res) {
                 //console.log('getAll user ', JSON.stringify(users));
                 if (err) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'error',
                         code: 'E0005',
                         description: 'Une erreur interne s\'est produite',
                         payload: err
-                    }));
+                    }, secretKey);
+                    res.write(JSON.stringify({jwt: payload }));
                     return res.end();
                 } else {
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'members',
                         code: 'T0005',
                         description: 'Liste des utilisateurs connectés',
                         payload: users
-                    }));
+                    }, secretKey);
+                    res.write(JSON.stringify({ jwt: payload }));
                     return res.end();
                 }
             });
@@ -795,21 +818,23 @@ app.post('/restapi/discussions/add-member', function (req, res) {
         return res.end();
     } else if (!req.body.discussionId || !req.body.newMembers) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.write(JSON.stringify({
+        payload = jwt.sign({
             type: 'error',
             code: 'E0008',
             description: 'Identifiant de la discussion et/ou liste des membres à ajouter inexistante'
-        }));
+        }, secretKey);
+        res.write(JSON.stringify({ jwt: payload }));
         return res.end();
     } else {
         if (req.body.token === req.session.token) {
             DiscussionModel.findById(mongoose.Types.ObjectId(req.body.discussionId), function (err, discussion) {
                 if (err) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'error',
                         description: 'Une erreur interne s\'est produite',
-                    }));
+                    }, secretKey);
+                    res.write(JSON.stringify({ jwt: payload }));
                     return res.end();
                 }
                 if (discussion) {
@@ -821,32 +846,35 @@ app.post('/restapi/discussions/add-member', function (req, res) {
                         // Vérifier si l'ajout des nouveaux utilisateurs entraine le dépassement du seuil des 9 Membres
                         if (newDisccusionMembers.length > 9) {
                             res.writeHead(400, { 'Content-Type': 'application/json' });
-                            res.write(JSON.stringify({
+                            payload = jwt.sign({
                                 type: 'error',
                                 code: 'E0005',
                                 description: 'Trop de members tuent les membres'
-                            }));
+                            }, secretKey);
+                            res.write(JSON.stringify({jwt: payload }));
                             return res.end();
                         } else {
                             discussion.members = newDisccusionMembers;
                             discussion.save(function (err, result) {
                                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                                res.write(JSON.stringify({
+                                payload = jwt.sign({
                                     type: 'discussion',
                                     code: 'T0008',
                                     description: 'Membre(s) ajouté(s) avec succès',
                                     payload: discussion.members
-                                }));
+                                }, secretKey);
+                                res.write(JSON.stringify({jwt: payload }));
                                 return res.end();
                             });
                         }
                     } else {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
-                        res.write(JSON.stringify({
+                        payload = jwt.sign({
                             type: 'error',
                             code: 'E0006',
                             description: 'Vous n\'avez pas le droit d\'effectuer cette manipulation pour cette discussion'
-                        }));
+                        }, secretKey);
+                        res.write(JSON.stringify({jwt: payload }));
                         return res.end();
                     }
                 }
@@ -875,11 +903,12 @@ app.post('/restapi/discussions/leave', function (req, res) {
         return res.end();
     } else if (!req.body.discussionId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.write(JSON.stringify({
+        payload = jwt.sign({
             type: 'error',
             code: 'E0008',
             description: 'Identifiant de la discussion manquant'
-        }));
+        }, secretKey);
+        res.write(JSON.stringify({jwt: payload }));
         return res.end();
     } else {
         if (req.body.token === req.session.token) {
@@ -887,12 +916,13 @@ app.post('/restapi/discussions/leave', function (req, res) {
                 //console.log('getAll user ', JSON.stringify(users));
                 if (err) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'error',
                         code: 'E0005',
                         description: 'Une erreur interne s\'est produite',
                         payload: err
-                    }));
+                    }, secretKey);
+                    res.write(JSON.stringify({jwt: payload }));
                     return res.end();
                 }
                 if (discussion) {
@@ -904,72 +934,79 @@ app.post('/restapi/discussions/leave', function (req, res) {
                         discussion.save(function (err, updatedDisc) {
                             if (err) {
                                 res.writeHead(400, { 'Content-Type': 'application/json' });
-                                res.write(JSON.stringify({
+                                payload = jwt.sign({
                                     type: 'error',
-                                    code: 'E0008',
+                                    code: 'E0005',
                                     description: 'Une erreur interne s\'est produite',
                                     payload: err
-                                }));
+                                }, secretKey);
+                                res.write(JSON.stringify({jwt: payload }));
                                 return res.end();
                             }
                             res.writeHead(200, { 'Content-Type': 'application/json' });
-                            res.write(JSON.stringify({
+                            payload = jwt.sign({
                                 type: 'discussion',
                                 code: 'T0010',
                                 description: 'Vous avez quitté la conversation',
                                 payload: updatedDisc
-                            }));
+                            }, secretKey);
+                            res.write(JSON.stringify({jwt: payload }));
                             return res.end();
                         });
                     } else if (req.session.user._id === discussion.creator.toString()) {
                         // Membre créateur quitte la conversation
                         if (!req.body.force) {
                             res.writeHead(400, { 'Content-Type': 'application/json' });
-                            res.write(JSON.stringify({
+                            payload = jwt.sign({
                                 type: 'error',
                                 code: 'E0007',
                                 description: 'Pour quitter une conversation dont vous êtes créateur, il faut forcer sa suppresion',
                                 payload: discussion
-                            }));
+                            }, secretKey);
+                            res.write(JSON.stringify({jwt: payload }));
                             return res.end();
                         }
                         // TODO:
                         DiscussionModel.deleteById(discussion.id, function (err) {
                             if (err) {
                                 res.writeHead(400, { 'Content-Type': 'application/json' });
-                                res.write(JSON.stringify({
+                                payload = jwt.sign({
                                     type: 'error',
-                                    code: 'E0008',
+                                    code: 'E0005',
                                     description: 'Une erreur interne s\'est produite',
                                     payload: err
-                                }));
+                                }, secretKey);
+                                res.write(JSON.stringify({jwt: payload }));
                                 return res.end();
                             }
                             res.writeHead(200, { 'Content-Type': 'application/json' });
-                            res.write(JSON.stringify({
+                            payload = jwt.sign({
                                 type: 'discussion',
                                 code: 'T0009',
                                 description: 'La discussion a été supprimée, ainsi que son historique'
-                            }));
+                            }, secretKey);
+                            res.write(JSON.stringify({jwt: payload }));
                             return res.end();
                         });
 
                     } else {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
-                        res.write(JSON.stringify({
+                        payload = jwt.sign({
                             type: 'error',
                             code: 'E0008',
                             description: 'Vous ne pouvez pas quitter cette conversation car vous n\'en faites pas partie'
-                        }));
+                        }, secretKey);
+                        res.write(JSON.stringify({jwt: payload }));
                         return res.end();
                     }
                 } else {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    res.write(JSON.stringify({
+                    payload = jwt.sign({
                         type: 'error',
                         code: 'E0008',
                         description: 'Conversation inexistante'
-                    }));
+                    }, secretKey);
+                    res.write(JSON.stringify({jwt: payload }));
                     return res.end();
                 }
             });
