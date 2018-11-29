@@ -239,7 +239,7 @@ app.post('/restapi/discussions/list', function (req, res) {
     }
 });
 
-app.post('/restapi/discussions/get-messages', function(req, res) {
+app.post('/restapi/discussions/get-messages', function (req, res) {
     if (!req.body.token || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -258,7 +258,7 @@ app.post('/restapi/discussions/get-messages', function(req, res) {
         return res.end();
     }
 
-    MessageModel.getMessagesInDiscussion(req.body.discussionId, req.session.user._id, function(err, messages, discussion) {
+    MessageModel.getMessagesInDiscussion(req.body.discussionId, req.session.user._id, function (err, messages, discussion) {
         if (err) {
             if (err == 'notAllowed') {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -290,22 +290,22 @@ app.post('/restapi/discussions/get-messages', function(req, res) {
 
         if (messages) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.write(JSON.stringify({
-                    type: 'discussion',
-                    code: 'T0013',
-                    description: 'Récupération des messages de la discussion',
-                    payload: {
-                        id: discussion.id,
-                        label: discussion.label,
-                        lastMessages: messages
-                    }
-                }));
-                return res.end();
+            res.write(JSON.stringify({
+                type: 'discussion',
+                code: 'T0013',
+                description: 'Récupération des messages de la discussion',
+                payload: {
+                    id: discussion.id,
+                    label: discussion.label,
+                    lastMessages: messages
+                }
+            }));
+            return res.end();
         }
-    }, req.body.options);  
+    }, req.body.options);
 });
 
-app.post('/restapi/discussions/post-message', function(req, res) {
+app.post('/restapi/discussions/post-message', function (req, res) {
     if (!req.body.token || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -324,7 +324,7 @@ app.post('/restapi/discussions/post-message', function(req, res) {
         return res.end();
     }
 
-    MessageModel.postMessageInDiscussion(req.body.discussionId, req.session.user._id, req.body.message, function(err, message, discussion) {
+    MessageModel.postMessageInDiscussion(req.body.discussionId, req.session.user._id, req.body.message, function (err, message, discussion) {
         if (err) {
             if (err == 'notAllowed') {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -600,12 +600,8 @@ app.get('/email/confirm/*', function (req, res) {
 });
 
 app.get('/restapi/logout', function (req, res) {
-<<<<<<< HEAD
-    res.writeHead(503, { 'Content-Type': 'application/json' });
-=======
     let payload = jwt.verify(req.body.jwt, secretKey);
     req.body.token = payload.token;
->>>>>>> 880bf4624b551e0bd4ec7167377f693556199fdc
 
     if (req.session.user && (req.body.token === req.session.token)) {
         req.session.destroy();
@@ -615,7 +611,7 @@ app.get('/restapi/logout', function (req, res) {
             code: 'T0003',
             description: 'Vous avez bien été déconnecté'
         });
-        res.write(JSON.stringify({jwt: payload}));
+        res.write(JSON.stringify({ jwt: payload }));
     } else {
         res.writeHead(503, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -628,12 +624,8 @@ app.get('/restapi/logout', function (req, res) {
 });
 
 app.post('/restapi/client-heart-beat', function (req, res) {
-<<<<<<< HEAD
-    // console.log('Client token rcv ', req.body.token, ' stored token ', req.session.token);
-=======
     let payload = jwt.verify(req.body.jwt, secretKey);
     req.body.token = payload.token;
->>>>>>> 880bf4624b551e0bd4ec7167377f693556199fdc
     if ((!req.body.token && !req.body.payload) || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -665,7 +657,7 @@ app.post('/restapi/client-heart-beat', function (req, res) {
                         code: 'T0002',
                         description: 'Votre bail a été renouvelé'
                     }, secretKey)
-                    res.write(JSON.stringify({jwt: payload}));
+                    res.write(JSON.stringify({ jwt: payload }));
                     return res.end();
                 }
             });
@@ -682,11 +674,8 @@ app.post('/restapi/client-heart-beat', function (req, res) {
 });
 
 app.post('/restapi/members/get-all', function (req, res) {
-<<<<<<< HEAD
-=======
     let payload = jwt.verify(req.body.jwt, secretKey);
     req.body.token = payload.token;
->>>>>>> 880bf4624b551e0bd4ec7167377f693556199fdc
     if (!req.body.token || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
@@ -716,7 +705,7 @@ app.post('/restapi/members/get-all', function (req, res) {
                         description: 'Liste des utilisateurs inscrits',
                         payload: users
                     }, secretKey);
-                    res.write(JSON.stringify({jwt: payload}));
+                    res.write(JSON.stringify({ jwt: payload }));
                     return res.end();
                 }
             });
@@ -732,18 +721,61 @@ app.post('/restapi/members/get-all', function (req, res) {
     }
 });
 
-<<<<<<< HEAD
+app.post('/apirest/get-onlines', function (req, res) {
+    if (!req.body.token || !req.session.user || !req.session.token) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0005',
+            description: 'Session expirée ou inexistante'
+        }));
+        return res.end();
+    } else {
+        if (req.body.token === req.session.token) {
+            mongoose.model('User').getOnlines(req.body.strategy, function (err, users) {
+                //console.log('getAll user ', JSON.stringify(users));
+                if (err) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'error',
+                        code: 'E0005',
+                        description: 'Une erreur interne s\'est produite',
+                        payload: err
+                    }));
+                    return res.end();
+                } else {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.write(JSON.stringify({
+                        type: 'members',
+                        code: 'T0005',
+                        description: 'Liste des utilisateurs connectés',
+                        payload: users
+                    }));
+                    return res.end();
+                }
+            });
+        } else {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({
+                type: 'error',
+                code: 'E0005',
+                description: 'Session expirée ou inexistante'
+            }));
+            res.end();
+        }
+    }
+});
+
 function merge_array(array1, array2) {
     var result_array = [];
     var arr = array1.concat(array2);
     var len = arr.length;
     var assoc = {};
 
-    while(len--) {
+    while (len--) {
         var item = arr[len];
 
-        if(!assoc[item])
-        {
+        if (!assoc[item]) {
             result_array.unshift(item);
             assoc[item] = true;
         }
@@ -753,16 +785,10 @@ function merge_array(array1, array2) {
 }
 
 app.post('/restapi/discussions/add-member', function (req, res) {
-=======
-app.post('/restapi/members/get-onlines', function (req, res) {
-    let payload = jwt.verify(req.body.jwt, secretKey);
-    req.body.token = payload.token;
->>>>>>> 880bf4624b551e0bd4ec7167377f693556199fdc
     if (!req.body.token || !req.session.user || !req.session.token) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.write(JSON.stringify({
             type: 'error',
-<<<<<<< HEAD
             code: 'E0004',
             description: 'Session expirée ou inexistante'
         }));
@@ -786,17 +812,14 @@ app.post('/restapi/members/get-onlines', function (req, res) {
                     }));
                     return res.end();
                 }
-                if(discussion){
+                if (discussion) {
                     // Vérifier si l'utilsiateur émettant la requête est bien le créateur de la discussion
-                    if(discussion.creator == req.session.user._id){
+                    if (discussion.creator == req.session.user._id) {
                         /* Fusionner le tableaux des membres à ajouter avec celui des membres existants
                             en supprimant tout les membres en double*/
                         let newDisccusionMembers = merge_array(req.body.newMembers, discussion.members);
-                        console.log(req.body.newMembers);
-                        console.log(discussion.members);
-                        console.log(newDisccusionMembers);
                         // Vérifier si l'ajout des nouveaux utilisateurs entraine le dépassement du seuil des 9 Membres
-                        if(newDisccusionMembers.length > 9){
+                        if (newDisccusionMembers.length > 9) {
                             res.writeHead(400, { 'Content-Type': 'application/json' });
                             res.write(JSON.stringify({
                                 type: 'error',
@@ -861,30 +884,16 @@ app.post('/restapi/discussions/leave', function (req, res) {
     } else {
         if (req.body.token === req.session.token) {
             DiscussionModel.findById(mongoose.Types.ObjectId(req.body.discussionId), function (err, discussion) {
-=======
-            code: 'E0005',
-            description: 'Session expirée ou inexistante'
-        }));
-        return res.end();
-    } else {
-        if (req.body.token === req.session.token) {
-            mongoose.model('User').getOnlines(req.body.strategy, function (err, users) {
->>>>>>> 880bf4624b551e0bd4ec7167377f693556199fdc
                 //console.log('getAll user ', JSON.stringify(users));
                 if (err) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
                     res.write(JSON.stringify({
                         type: 'error',
-<<<<<<< HEAD
-                        code: 'E0008',
-=======
                         code: 'E0005',
->>>>>>> 880bf4624b551e0bd4ec7167377f693556199fdc
                         description: 'Une erreur interne s\'est produite',
                         payload: err
                     }));
                     return res.end();
-<<<<<<< HEAD
                 }
                 if (discussion) {
                     // console.log('>>session id ', req.session.user._id, ' >> members ', discussion.members)
@@ -961,17 +970,6 @@ app.post('/restapi/discussions/leave', function (req, res) {
                         code: 'E0008',
                         description: 'Conversation inexistante'
                     }));
-=======
-                } else {
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    payload = jwt.sign({
-                        type: 'members',
-                        code: 'T0005',
-                        description: 'Liste des utilisateurs connectés',
-                        payload: users
-                    }, secretKey);
-                    res.write(JSON.stringify({jwt: payload}));
->>>>>>> 880bf4624b551e0bd4ec7167377f693556199fdc
                     return res.end();
                 }
             });
@@ -979,11 +977,7 @@ app.post('/restapi/discussions/leave', function (req, res) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.write(JSON.stringify({
                 type: 'error',
-<<<<<<< HEAD
-                code: 'E0004',
-=======
                 code: 'E0005',
->>>>>>> 880bf4624b551e0bd4ec7167377f693556199fdc
                 description: 'Session expirée ou inexistante'
             }));
             res.end();
