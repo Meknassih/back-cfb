@@ -64,7 +64,7 @@ MessageSchema.statics.register = function (author, message, discution) {
               }
             }
         });
-}
+} 
 
 
 
