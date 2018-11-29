@@ -47,6 +47,7 @@ app.get('/', function (req, res) {
 // Setting up cryptography
 const algorithm = 'aes-256-ctr';
 const password = 'mp45L)dv:T';
+
 function encrypt(text) {
     var cipher = crypto.createCipher(algorithm, password)
     var crypted = cipher.update(text, 'utf8', 'hex')
@@ -303,6 +304,69 @@ app.post('/restapi/discussions/get-messages', function(req, res) {
         }
     }, req.body.options);  
 });
+
+app.post('/restapi/discussions/post-message', function(req, res) {
+    if (!req.body.token || !req.session.user || !req.session.token) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E0004',
+            description: 'Session expirée ou inexistante'
+        }));
+        return res.end();
+    } else if (!req.body.discussionId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({
+            type: 'error',
+            code: 'E1009',
+            description: 'Identifiant de discussion manquant'
+        }));
+        return res.end();
+    }
+
+    MessageModel.postMessageInDiscussion(req.body.discussionId, req.session.user._id, req.body.message, function(err, message, discussion) {
+        if (err) {
+            if (err == 'notAllowed') {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'error',
+                    code: 'E0009',
+                    description: 'Vous ne pouvez pas réaliser cette opération car vous n\'avez pas accès à cette conversation',
+                }));
+                return res.end();
+            } else if (err == 'notFound') {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'error',
+                    code: 'E0009',
+                    description: 'Vous ne pouvez pas réaliser cette opération car la discussion n\'existe pas',
+                }));
+                return res.end();
+            } else {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.write(JSON.stringify({
+                    type: 'error',
+                    code: 'E0009',
+                    description: 'Une erreur s\'est produite lors de l\'envoie des messages',
+                    payload: err
+                }));
+                return res.end();
+            }
+        }
+
+        if (message) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({
+                type: 'discussion',
+                code: 'T0012',
+                description: 'Message enregistré avec succès'
+            }));
+            return res.end();
+        }
+    }, req.body.options);
+});
+
+
 
 app.post('/login', function (req, res) {
     let filePath = path.join(_templateDir, '/identification.html');

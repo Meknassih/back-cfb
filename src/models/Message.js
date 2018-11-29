@@ -10,7 +10,6 @@ const MessageSchema = new Schema({
 );
 const { DiscussionSchema, DiscussionModel } = require('./Discussion');
 
-//TODO: TEC12
 MessageSchema.statics.getMessagesInDiscussion = function (discussionId, userId, cb, options) {
     if (!options)
         options = {count:30, offset:0};
@@ -43,29 +42,30 @@ MessageSchema.statics.getMessagesInDiscussion = function (discussionId, userId, 
         }
     });
 };
-//TODO: TEC13
 
-MessageSchema.statics.register = function (author, message, discution) {
-    if (author) {
-        return this.findOne({ author: username }, (err, existingUser) => {
-            if (err)
-                return cb(err);
-                  mongoose.model('Message').create({ author: username, message: message, discution: discution}, function (err, user) {
-                      if (err) {
-                          cb(err);
-                      } else {
-                          cb(null, user);
-                      }
-                  });
-                    }
-                });
-              else{
-                return ('Error');
-              }
-            }
-        });
-} 
+MessageSchema.statics.postMessageInDiscussion = function (discussionId, userId, message, cb) {
+    DiscussionModel.findById(mongoose.Types.ObjectId(discussionId), function (err, discussion) {
+        if (err)
+            return cb(err);
 
+        if (discussion) {
+            // Vérifier si l'utilisateur est autorisé à envoyer un message (membre / créateur de la discussion)
+            if (discussion.members.findIndex(m => (m.toString() == userId))<0
+                && discussion.creator.toString() != userId)
+                return cb('notAllowed');
+
+            let dataMessage  = {author: userId, message: message, discussion: discussionId};
+            // Enregistrement du message
+            mongoose.model('Message').create(dataMessage, function (err, createdMessage) {
+                if (err)
+                    return cb(err);
+                return cb(null, createdMessage, discussion);
+            });
+        } else {
+            return cb('notFound');
+        }
+    });
+};
 
 
 const MessageModel = mongoose.model('Message', MessageSchema);
